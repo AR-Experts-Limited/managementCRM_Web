@@ -1,23 +1,20 @@
 const mongoose = require('mongoose');
 
 const PersonnelSchema = new mongoose.Schema({
-    firstName: { type : String },
-    lastName: {type : String},
-    address: {type : String},
+    firstName: { type : String, required: true},
+    lastName: {type : String, required: true},
+    address: {type : String, required: true},
     user_ID: { type: String, required: true },
     postcode: { type: String, required: true, match: /^[A-Z0-9 ]{3,10}$/i },
     role: {type: String },
-    niDetails: { 
-        nationalInsuranceNumber: {type: String, required: true},
-        doc: {type: String, required: true}
-    },
+    nationalInsuranceNumber: {type: String, required: true},
     dateOfBirth: { type: Date, required: true },
     nationality: { type: String, required: true },
     dateOfJoining: { type: Date, required: false },
     phone: { type: String, required: true },
     email: { type: String, required: true },
     addedBy: { type: Object },
-    siteSelection: { type: Array },
+    siteSelection: { type: Array, required: true },
     utrNo: { type: String, required: false },
     utrUpdatedOn: { type: Date, required: false },
     activeStatus: { type: String, required: true, default: "Active" },

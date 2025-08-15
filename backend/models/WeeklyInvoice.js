@@ -19,6 +19,7 @@ const weeklyInvoiceSchema = new mongoose.Schema({
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'DayInvoice',
+            required: true
         },
     ],
     additionalChargesDetail: Array,
