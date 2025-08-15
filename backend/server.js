@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
+const path = require("path");
+const { registerClient } = require('./utils/sseService');
 
 const app = express();
 const dbMiddleware = require("./middleware/dbMiddleware");
@@ -14,6 +16,12 @@ const personnelRoutes = require('./routes/personnels');
 const dayInvoiceRoutes = require('./routes/dayinvoice');
 const weeklyInvoiceRoutes = require('./routes/weeklyInvoice');
 const auditLogRoutes = require('./routes/auditlog');
+const deductionRoutes = require('./routes/deductions');
+const incentiveRoutes = require('./routes/incentives');
+const additionalChargeRoutes = require('./routes/additionalCharges');
+const IdCounterRoutes = require('./routes/IdCounter');
+const liveOpsRoutes = require('./routes/liveOps');
+const spendingInsightsRoutes = require('./routes/spendingInsights');
 
 // Routes Usage
 app.use('/api/auth', authRoutes);
@@ -21,6 +29,12 @@ app.use('/api/personnels', personnelRoutes);
 app.use('/api/dayinvoice', dayInvoiceRoutes);
 app.use('/api/weeklyinvoice', weeklyInvoiceRoutes);
 app.use('/api/auditlog', auditLogRoutes);
+app.use('/api/deduction', deductionRoutes);
+app.use('/api/incentive', incentiveRoutes);
+app.use('/api/additional-charge', additionalChargeRoutes);
+app.use('/api/idcounter', IdCounterRoutes);
+app.use('/api/live-ops', liveOpsRoutes);
+app.use('/api/spending-insights', spendingInsightsRoutes);
 
 const multer = require('multer');
 const multerS3 = require('multer-s3');
@@ -56,7 +70,13 @@ const upload = multer({
   }),
 });
 
+app.get('/api/stream', (req, res) => {
+  registerClient(req, res);  // Register this client to listen for events
+});
+
 app.use(dbMiddleware);
+
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
@@ -64,7 +84,12 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
-app.get("*", (req, res) => {
+//app.get("*", (req, res) => {
+//  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+//});
+
+// After all API routes and static middleware:
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
 });
 

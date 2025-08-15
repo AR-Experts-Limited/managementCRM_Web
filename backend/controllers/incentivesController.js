@@ -4,7 +4,7 @@ const { sendToClients } = require('../utils/sseService');
 const moment = require('moment');
 
 const getModels = (req) => ({
-  Driver: req.db.model('Personnel', require('../models/Personnel').schema),
+  Personnel: req.db.model('Personnel', require('../models/Personnel').schema),
   DayInvoice: req.db.model('DayInvoice', require('../models/DayInvoice').schema),
   WeeklyInvoice: req.db.model('WeeklyInvoice', require('../models/WeeklyInvoice').schema),
   Incentive: req.db.model('Incentive', require('../models/Incentive').schema),

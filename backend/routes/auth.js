@@ -1,6 +1,7 @@
 const express = require('express');
 const userAuth = require('../middleware/userAuth')
 const router = express.Router();
+const { getUsers, getUserByEmail, loginUser, logoutUser, isAuth, verifyOtp, refreshToken, signUp, deleteUser, deleteByUserId, updateUser, updateByUserId, updatePassword } = require('../controllers/authController');
 
 router.get('/', getUsers);
 router.get('/getUserByEmail/:email', getUserByEmail);

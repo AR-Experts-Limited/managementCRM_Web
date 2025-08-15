@@ -2,9 +2,20 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { startSSE, stopSSE } from './features/sse/sseSlice';
+import { useSelector, useDispatch } from 'react-redux';
 
 function App() {
   const [count, setCount] = useState(0)
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(startSSE());
+
+    return () => {
+      dispatch(stopSSE());
+    };
+  }, [dispatch]);
 
   return (
     <>

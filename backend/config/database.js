@@ -17,7 +17,7 @@ const getDatabaseConnection = async (dbName) => {
 
                                              if (dbName !== 'ClientMapDB') {
                                                 conn.on('connected', () => {
-                                                    initializeChangeStreams(conn);
+                                                    //initializeChangeStreams(conn);
                                                 });
                                             }    
 

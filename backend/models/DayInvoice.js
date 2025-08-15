@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const DeductionSchema = require('./deductions').schema;
+const DeductionSchema = require('./Deduction').schema;
 const IncentiveSchema = require('./Incentive').schema
 
 const dayInvoiceSchema = new mongoose.Schema({
