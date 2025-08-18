@@ -10,6 +10,9 @@ const { registerClient } = require('./utils/sseService');
 const app = express();
 const dbMiddleware = require("./middleware/dbMiddleware");
 app.use(dbMiddleware);
+app.use(cookieParser());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -75,9 +78,6 @@ app.get('/api/stream', (req, res) => {
   registerClient(req, res);  // Register this client to listen for events
 });
 
-app.use(cookieParser());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
 app.use(express.static(path.join(__dirname, "public")));
 

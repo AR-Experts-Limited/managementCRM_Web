@@ -202,7 +202,12 @@ const refreshToken = async (req, res) => {
 
 const signUp = async (req, res) => {
   const User = req.db.model('User', require('../models/User').schema)
-  const { firstName, lastName, email, password, role, access, site, siteArray, otp, otpVerified, otpExpiry, user_ID, companyId } = req.body;
+
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ message: 'Empty body. Set Content-Type: application/json and send a valid JSON payload.' });
+  }
+
+  const { firstName, lastName, email, password, role, access, site, otp, otpVerified, otpExpiry, user_ID, companyId } = req.body;
 
   try {
     // Check if the user already exists
@@ -224,7 +229,6 @@ const signUp = async (req, res) => {
       role: role || 'user', // Default role is 'user' if none is provided
       access,
       site,
-      siteArray,
       companyId,
       otp,
       otpVerified,
