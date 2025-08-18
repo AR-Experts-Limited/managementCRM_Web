@@ -27,6 +27,12 @@ const IdCounterRoutes = require('./routes/IdCounter');
 const liveOpsRoutes = require('./routes/liveOps');
 const spendingInsightsRoutes = require('./routes/spendingInsights');
 
+//App Route 
+const applicationLocationRoutes = require('./routes/applicationLocationRoutes');//App
+const applicationDataRoutes = require('./routes/applicationData');//App
+const appVersionRoutes = require('./routes/applicationVersion');
+
+
 // Routes Usage
 app.use('/api/auth', authRoutes);
 app.use('/api/personnels', personnelRoutes);
@@ -39,6 +45,11 @@ app.use('/api/additional-charge', additionalChargeRoutes);
 app.use('/api/idcounter', IdCounterRoutes);
 app.use('/api/live-ops', liveOpsRoutes);
 app.use('/api/spending-insights', spendingInsightsRoutes);
+
+//App Routes
+app.use('/api/location', applicationLocationRoutes);
+app.use('/api/applicationData', applicationDataRoutes);//App
+app.use('/api', appVersionRoutes);//App
 
 const multer = require('multer');
 const multerS3 = require('multer-s3');
