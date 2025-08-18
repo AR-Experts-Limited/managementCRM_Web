@@ -9,6 +9,7 @@ const { registerClient } = require('./utils/sseService');
 
 const app = express();
 const dbMiddleware = require("./middleware/dbMiddleware");
+app.use(dbMiddleware);
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -73,8 +74,6 @@ const upload = multer({
 app.get('/api/stream', (req, res) => {
   registerClient(req, res);  // Register this client to listen for events
 });
-
-app.use(dbMiddleware);
 
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));

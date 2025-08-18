@@ -1,7 +1,6 @@
 const { getDatabaseConnection } = require("../config/database");
 
 module.exports = async (req, res, next) => {
-    console.log("Inside DBMiddleware");
     try {
         const origin = req.headers['origin'];
         let subdomain = "";
@@ -27,8 +26,6 @@ module.exports = async (req, res, next) => {
         console.log("Extracted dbName from Origin:", dbName);
 
         req.db = await getDatabaseConnection(dbName); // Attach DB connection to request
-
-        console.log("Req = ", dbName);
 
         next();
     } catch (error) {

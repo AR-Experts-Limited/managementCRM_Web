@@ -7,27 +7,31 @@ const dbPassword = encodeURIComponent(process.env.MONGODB_PASSWORD);
 const dbCluster = process.env.MONGODB_CLUSTER;
 
 const getDatabaseConnection = async (dbName) => {
-    try{
-        if (!connections[dbName]) 
+  try {
+    if (!connections[dbName]) {
+      const conn = mongoose.createConnection(
+        `mongodb+srv://${dbUser}:${dbPassword}@${dbCluster}/${dbName}?retryWrites=true&w=majority&appName=${dbName}`,
         {
-            const conn = mongoose.createConnection(`mongodb+srv://${dbUser}:${dbPassword}@${dbCluster}/${dbName}?retryWrites=true&w=majority&appName=${dbName}`, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true
-                                             })
-
-                                             if (dbName !== 'ClientMapDB') {
-                                                conn.on('connected', () => {
-                                                    //initializeChangeStreams(conn);
-                                                });
-                                            }    
-
-            connections[dbName] = conn;
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
         }
-        return connections[dbName];
+      );
+
+      await conn.asPromise();
+
+      if (dbName !== "ClientMapDB") {
+        conn.on("connected", () => {
+          // initializeChangeStreams(conn);
+        });
+      }
+
+      connections[dbName] = conn;
     }
-    catch(error){
-        console.error('Error connecting to MongoDB', err)
-    }
-}
+    return connections[dbName];
+  } catch (error) {
+    console.error("Error connecting to MongoDB", error);
+    throw error;
+  }
+};
 
 module.exports = { getDatabaseConnection };
