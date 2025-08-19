@@ -5,6 +5,7 @@ const {
   updateLocation,
   getLocationData,
   requestLocation,
+
 } = require('../controllers/applicationLocationController');
 
 // Update Location

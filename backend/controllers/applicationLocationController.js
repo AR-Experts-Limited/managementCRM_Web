@@ -105,9 +105,43 @@ const updateLocation = async (req, res) => {
         });
       }
   };
+
+  //Update a user's location
+const updateUserLocation = async (req, res) => {
+    const AppLocation = req.db.model('AppLocation', require('../models/AppLocation').schema);
+    const { user_ID, latitude, longitude } = req.body;
+
+    if (!user_ID || latitude === undefined || longitude === undefined) {
+        return res.status(400).json({ message: 'user_ID, latitude, and longitude are required.' });
+    }
+  
+    try {
+        const timestamp = new Date();
+        // Use findOneAndUpdate with upsert to create the document if it doesn't exist
+        const locationData = await AppLocation.findOneAndUpdate(
+            { user_ID },
+            { 
+                $set: { 
+                    currentLocation: { latitude, longitude, timestamp }
+                },
+                $push: { 
+                    hourlyLocations: { latitude, longitude, timestamp }
+                }
+            },
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({ message: 'Location updated successfully.', locationData });
+    } catch (error) {
+        console.error('Error updating location:', error);
+        res.status(500).json({ message: 'Error updating location.', error: error.message });
+    }
+};
+
   
   module.exports = {
     updateLocation,
     getLocationData,
     requestLocation,
+    updateUserLocation,
   };

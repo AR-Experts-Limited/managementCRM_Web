@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
 const PersonnelSchema = new mongoose.Schema({
     firstName: { type : String, required: true},

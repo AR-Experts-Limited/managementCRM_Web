@@ -7,12 +7,18 @@ const mongoose = require('mongoose');
 const path = require("path");
 const { registerClient } = require('./utils/sseService');
 
-const app = express();
+
 const dbMiddleware = require("./middleware/dbMiddleware");
+
+const { protectApp } = require('./middleware/applicationAuthMiddleware'); // Middleware for app routes
+
+const app = express();
 app.use(dbMiddleware);
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -28,9 +34,13 @@ const liveOpsRoutes = require('./routes/liveOps');
 const spendingInsightsRoutes = require('./routes/spendingInsights');
 
 //App Route 
+const applicationAuthRoutes = require('./routes/applicationAuthRoutes');
 const applicationLocationRoutes = require('./routes/applicationLocationRoutes');//App
 const applicationDataRoutes = require('./routes/applicationData');//App
 const appVersionRoutes = require('./routes/applicationVersion');
+const applicationProfileRoutes = require('./routes/applicationProfileRoutes');
+const applicationInboxRoutes = require('./routes/applicationInboxRoutes');
+
 
 
 // Routes Usage
@@ -46,10 +56,18 @@ app.use('/api/idcounter', IdCounterRoutes);
 app.use('/api/live-ops', liveOpsRoutes);
 app.use('/api/spending-insights', spendingInsightsRoutes);
 
+
+//app Auth route
+app.use('/api/applicationAuth', applicationAuthRoutes);
 //App Routes
-app.use('/api/location', applicationLocationRoutes);
-app.use('/api/applicationData', applicationDataRoutes);//App
-app.use('/api', appVersionRoutes);//App
+app.use('/api/location', protectApp, applicationLocationRoutes);
+app.use('/api/applicationData', protectApp, applicationDataRoutes);//App
+app.use('/api', protectApp, appVersionRoutes);//App
+app.use('/api/app-profile', protectApp, applicationProfileRoutes);
+app.use('/api/app-inbox', protectApp, applicationInboxRoutes);
+
+
+
 
 const multer = require('multer');
 const multerS3 = require('multer-s3');
