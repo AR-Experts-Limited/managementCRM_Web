@@ -3,7 +3,7 @@ const multer = require('multer'); // To handle file uploads
 const router = express.Router();
 const multerS3 = require('multer-s3');
 const s3 = require('./aws'); // Optional: To delete files from file system
-const { checkDayInvoice, addDeduction, deleteDeduction, fetchDeductions, fetchAllDeductionsForPersonnel, fetchDeductionBySiteWeek, fetchDeductionByPersonnelId, uploadDocument, deleteUpload } = require('../controllers/deductionsController');
+const { checkDayInvoice, addDeduction, deleteDeduction, fetchDeductions, fetchAllDeductionsForPersonnel, fetchDeductionByRoleWeek, fetchDeductionByPersonnelId, uploadDocument, deleteUpload } = require('../controllers/deductionsController');
 
 const upload = multer({
   storage: multerS3({
@@ -32,7 +32,7 @@ router.post('/', upload.any(), addDeduction);
 router.delete('/:id', deleteDeduction);
 router.get('/', fetchDeductions);
 router.get('/filter', fetchDeductionByPersonnelId);
-router.get('/by-site-week', fetchDeductionBySiteWeek);
+router.get('/by-role-week', fetchDeductionByRoleWeek);
 router.get('/personnelspecific', fetchAllDeductionsForPersonnel);
 router.post('/docupload', upload.any(), uploadDocument);
 router.post('/deleteupload', deleteUpload);

@@ -12,7 +12,7 @@ const getModels = (req) => ({
 });
 
 const createAdditionalCharge = async (req, res) => {
-     const { personnelId, rate, site, type, week, title, vat } = req.body;
+     const { personnelId, rate, role, type, week, title, vat } = req.body;
   try {
     const { AdditionalCharges, Personnel, DayInvoice, WeeklyInvoice, User, Notification } = getModels(req);
     const doc = req.files[0]?.location || '';
@@ -42,7 +42,7 @@ const createAdditionalCharge = async (req, res) => {
       personnelId,
       personnelName: personnel.firstName + ' ' + personnel.lastName,
       rate: parsedRate,
-      site,
+      role,
       type,
       vat,
       user_ID: personnel.user_ID,
@@ -85,7 +85,7 @@ const createAdditionalCharge = async (req, res) => {
       _id: newAddOn._id,
       personnelId,
       personnelName: personnel.firstName + ' ' + personnel.lastName,
-      site,
+      role,
       week,
       vat,
       title,
@@ -122,7 +122,7 @@ const createAdditionalCharge = async (req, res) => {
       const message = {
         to: user.expoPushTokens,
         title: 'New Additional Charge Added',
-        body: `A new additional charge (${title}) has been added for ${personnelName} at ${site}`,
+        body: `A new additional charge (${title}) has been added for ${personnel.firstName} ${personnel.lastName}`,
         data: { additionalChargeId: newAddOn._id },
         isRead: false,
       };
@@ -139,7 +139,7 @@ const createAdditionalCharge = async (req, res) => {
       notification: {
         title: 'New Additional Charge Added',
         user_ID,
-        body: `A new additional charge (${title}) has been added for ${personnelName} at ${site}`,
+        body: `A new additional charge (${title}) has been added for ${personnel.firstName} ${personnel.lastName}`,
         data: { additionalChargeId: newAddOn._id },
         isRead: false,
       },
@@ -158,8 +158,7 @@ const createAdditionalCharge = async (req, res) => {
 }
 
 const fetchAdditionalCharges = async (req, res) => {
-    const AdditionalCharges = req.db.model('AdditionalCharges', require('../models/AdditionalCharges').schema);
-    const Personnel = req.db.model('Personnel', require('../models/Personnel').schema);
+    const { Personnel, AdditionalCharges } = getModels(req);
 
     try {
       const charges = await AdditionalCharges.find({});
@@ -183,24 +182,24 @@ const fetchAdditionalCharges = async (req, res) => {
     }
 }
 
-const fetchAdditionalChargesBySitesWeek = async (req, res) => {
-  const { sitesArray, serviceWeek } = req.query;
+const fetchAdditionalChargesByRolesWeek = async (req, res) => {
+  const { role, serviceWeek } = req.query;
 
-  if (!sitesArray || !serviceWeek) {
-    return res.status(400).json({ message: "Missing sitesArray or serviceWeek in query" });
+  if (!role || !serviceWeek) {
+    return res.status(400).json({ message: "Missing role or serviceWeek in query" });
   }
 
   try {
-    const AdditionalCharges = req.db.model('AdditionalCharges', require('../models/AdditionalCharges').schema);
+    const { AdditionalCharges } = getModels(req);
 
     const charges = await AdditionalCharges.find({
-      site: { $in: Array.isArray(sitesArray) ? sitesArray : [sitesArray] },
+      role: role,
       week: serviceWeek
     });
 
     res.status(200).json(charges);
   } catch (err) {
-    console.error("Error fetching additional charges by sites and week:", err);
+    console.error("Error fetching additional charges by role and week:", err);
     res.status(500).json({ message: 'Error fetching additional charges', error: err.message });
   }
 }
@@ -305,7 +304,7 @@ const deleteAdditionalCharge = async (req, res) => {
       const message = {
         to: user.expoPushTokens,
         title: 'Additional Charge Deleted',
-        body: `An additional charge (${additionalCharge.title}) for ${additionalCharge.personnelName} at ${additionalCharge.site} has been deleted`,
+        body: `An additional charge (${additionalCharge.title}) for ${additionalCharge.personnelName} has been deleted`,
         data: { additionalChargeId: additionalCharge._id },
         isRead: false,
       };
@@ -321,7 +320,7 @@ const deleteAdditionalCharge = async (req, res) => {
       notification: {
         title: 'Additional Charge Deleted',
         user_ID: additionalCharge.user_ID,
-        body: `An additional charge (${additionalCharge.title}) for ${additionalCharge.personnelName} at ${additionalCharge.site} has been deleted`,
+        body: `An additional charge (${additionalCharge.title}) for ${additionalCharge.personnelName} has been deleted`,
         data: { additionalChargeId: additionalCharge._id },
         isRead: false,
       },
@@ -339,4 +338,4 @@ const deleteAdditionalCharge = async (req, res) => {
   }
 }
 
-module.exports = { createAdditionalCharge, fetchAdditionalCharges, fetchAdditionalChargesBySitesWeek, deleteAdditionalCharge };
+module.exports = { createAdditionalCharge, fetchAdditionalCharges, fetchAdditionalChargesByRolesWeek, deleteAdditionalCharge };

@@ -57,7 +57,6 @@ router.get('/', asyncHandler(fetchAllPersonnels));
 router.get('/ninumber', asyncHandler(fetchNiNumber));
 router.get('/count', asyncHandler(fetchPersonnelCount));
 router.get('/personnelbyid', asyncHandler(fetchPersonnelbyId));
-router.get('/:siteSelection', asyncHandler(fetchPersonnelsBySite));
 router.get('/notifications', asyncHandler(fetchNotificationDetails));
 router.post('/', upload.any(), asyncHandler(addPersonnel));
 router.post('/upload-version', upload.any(), asyncHandler(uploadVersion));
@@ -67,6 +66,7 @@ router.post('/delete-additional-version', asyncHandler(deleteAdditionalVersion))
 router.put('/newupdate/:id', upload.any(), asyncHandler(newUpdate));
 router.put('/docUpdate/:id', asyncHandler(docUpdate));
 router.delete('/:id', asyncHandler(deletePersonnel));
+router.get('/:siteSelection', asyncHandler(fetchPersonnelsBySite));
 router.post('/togglePersonnel/:id', asyncHandler(togglePersonnel));
 
 module.exports = router;

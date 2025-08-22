@@ -19,11 +19,11 @@ const addDayInvoice = async (req, res) => {
     try {
     const { DayInvoice, IdCounter, WeeklyInvoice, Personnel, AdditionalCharges } = getModels(req);
     const {
-      personnelId, week, site, invoiceGeneratedBy, date, total
+      personnelId, week, role, invoiceGeneratedBy, date, total
     } = req.body;
 
-    if (!personnelId || !week || !site) {
-      return res.status(400).json({ message: 'personnelId, week, and site are required' });
+    if (!personnelId || !week || !role) {
+      return res.status(400).json({ message: 'personnelId, week, and role are required' });
     }
 
     const currentDate = new Date(date);
@@ -78,7 +78,7 @@ const addDayInvoice = async (req, res) => {
             invoiceGeneratedOn: currentDate,
           },
           referenceNumber: newInvoice.referenceNumber,
-          site,
+          role,
         },
       },
       { upsert: true, new: true }
@@ -256,11 +256,11 @@ const fetchDayInvoiceByPersonnelId = async (req, res) => {
 }
 
 const workingHours = async (req, res) => {
-  const { site, week, startDate, endDate } = req.body;
+  const { role, week, startDate, endDate } = req.body;
   const query = {};
   const isValidDate = (d) => d && !isNaN(new Date(d).getTime());
 
-  if (site) query.site = site;
+  if (role) query.role = role;
   if (week) query.week = week;
 
   let dateFilter = {};
@@ -333,21 +333,21 @@ const workingHours = async (req, res) => {
   }
 }
 
-const fetchDayInvoicesBySiteAndWeek = async (req, res) => {
-  const { sitesArray, week, startDate, endDate } = req.query;
+const fetchDayInvoicesByRoleAndWeek = async (req, res) => {
+  const { role, week, startDate, endDate } = req.query;
   const query = {};
 
-  // Handle multiple sites
-  if (Array.isArray(sitesArray) && sitesArray.length > 0) {
-    query.site = { $in: sitesArray };
+  // Handle Role filter
+  if (role) {
+    query.role = role;
   }
 
-  // Handle week filter
+  // Handle Week filter
   if (week) {
     query.week = week;
   }
 
-  // Handle date range
+  // Handle Date range
   if (startDate && endDate) {
     query.date = {
       $gte: new Date(startDate),
@@ -360,16 +360,16 @@ const fetchDayInvoicesBySiteAndWeek = async (req, res) => {
     const dayInvoices = await DayInvoice.find(query);
     res.status(200).json(dayInvoices);
   } catch (error) {
-    console.error("Error fetching multi-site day invoices:", error);
+    console.error("Error fetching invoices:", error);
     res.status(500).json({
-      message: 'Error fetching day invoices for given sites and week',
+      message: 'Error fetching day invoices for given role and week',
       error: error.message,
     });
   }
 }
 
 const fetchDayInvoices = async (req, res) => {
-  const { personnelId, startdate, enddate, site } = req.query;
+  const { personnelId, startdate, enddate, role } = req.query;
 
   let query = {
     personnelId: { $in: personnelId },
@@ -379,7 +379,7 @@ const fetchDayInvoices = async (req, res) => {
     },
   };
 
-  if (site) query.site = site;
+  if (role) query.role = role;
 
   try {
     const { DayInvoice } = getModels(req);
@@ -407,7 +407,7 @@ const deleteDayInvoice = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    const { personnelId, week, site } = invoice;
+    const { personnelId, week, role } = invoice;
 
     // Check if this is the only DayInvoice for the week
     const remainingInvoices = await DayInvoice.find({ personnelId, week, _id: { $ne: _id } }).lean();
@@ -564,11 +564,11 @@ const updateDayInvoice = async (req, res) => {
     const { DayInvoice, WeeklyInvoice, Personnel, AdditionalCharges } = getModels(req);
     const { invoiceId } = req.params;
     const {
-      incentiveDetail, deductionDetail, personnelId, week, site, date, modifiedBy, total
+      incentiveDetail, deductionDetail, personnelId, week, role, date, modifiedBy, total
     } = req.body;
 
-    if (!invoiceId || !personnelId || !week || !site) {
-      return res.status(400).json({ message: 'invoiceId, personnelId, week, and site are required' });
+    if (!invoiceId || !personnelId || !week || !role) {
+      return res.status(400).json({ message: 'invoiceId, personnelId, week, and role are required' });
     }
 
     if (!mongoose.Types.ObjectId.isValid(invoiceId)) {
@@ -654,7 +654,7 @@ const updateDayInvoice = async (req, res) => {
           incentiveDetail,
           personnelId,
           week,
-          site,
+          role,
           date,
           deductionDetail,
           total: updatedBaseTotal,
@@ -739,4 +739,4 @@ const updateComments = async (req, res) => {
   }
 }
 
-module.exports = { addDayInvoice, updateComments, updateDayInvoice, deleteDayInvoice, fetchDayInvoices, fetchDayInvoiceById, fetchDayInvoiceByPersonnelId, fetchDayInvoicesBySiteAndWeek, workingHours, uploadInvoice };
+module.exports = { addDayInvoice, updateComments, updateDayInvoice, deleteDayInvoice, fetchDayInvoices, fetchDayInvoiceById, fetchDayInvoiceByPersonnelId, fetchDayInvoicesByRoleAndWeek, workingHours, uploadInvoice };

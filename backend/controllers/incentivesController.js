@@ -60,7 +60,7 @@ const fetchIncentives = async (req, res) => {
 // Route to fetch Incentive by Personnel
 const fetchIncentiveByPersonnel = async (req, res) => {
   const Incentive = req.db.model('Incentive', require('../models/Incentive').schema);
-  const { personnelId, site, date} = req.query
+  const { personnelId, role, date} = req.query
   try {
     const query = {
       personnelId,
@@ -68,8 +68,8 @@ const fetchIncentiveByPersonnel = async (req, res) => {
       endDate: { $gte: new Date(date) },
     };
 
-    if (site)
-        query.site = site;
+    if (role)
+        query.role = role;
 
     const incentiveDetail = await Incentive.find(query);
     res.status(200).json(incentiveDetail);
@@ -80,14 +80,14 @@ const fetchIncentiveByPersonnel = async (req, res) => {
 }
 
 const addIncentive = async (req, res) => {
-  const { site, startDate, endDate, type, rate, addedBy } = req.body;
+  const { role, startDate, endDate, type, rate, addedBy } = req.body;
 
   try {
     const { Incentive, DayInvoice, WeeklyInvoice, Personnel } = getModels(req);
 
     // Step 1: Create and save Incentive
     const newIncentive = new Incentive({
-      site,
+      role,
       startDate,
       endDate,
       type,
@@ -105,7 +105,7 @@ const addIncentive = async (req, res) => {
         $gte: new Date(startDate),
         $lte: new Date(endDate),
       },
-      site
+      role
     };
 
     const dayInvoices = await DayInvoice.find(query);

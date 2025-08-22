@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const multerS3 = require('multer-s3');
 const s3 = require('./aws'); // Optional: To delete files from file system
 
-const { createAdditionalCharge, fetchAdditionalCharges, fetchAdditionalChargesBySitesWeek, deleteAdditionalCharge } = require('../controllers/additionalChargesController');
+const { createAdditionalCharge, fetchAdditionalCharges, fetchAdditionalChargesByRolesWeek, deleteAdditionalCharge } = require('../controllers/additionalChargesController');
 
 const upload = multer({
   storage: multerS3({
@@ -30,7 +30,7 @@ const upload = multer({
 
 router.post('/', upload.any(), createAdditionalCharge);
 router.get('/', fetchAdditionalCharges);
-router.get('/by-sites-week', fetchAdditionalChargesBySitesWeek);
+router.get('/by-roles-week', fetchAdditionalChargesByRolesWeek);
 router.delete('/:id', deleteAdditionalCharge);
 
 module.exports = router;

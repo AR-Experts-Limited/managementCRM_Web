@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const PersonnelSchema = new mongoose.Schema({
     firstName: { type : String, required: true},
@@ -19,32 +20,51 @@ const PersonnelSchema = new mongoose.Schema({
     utrUpdatedOn: { type: Date, required: false },
     activeStatus: { type: String, required: true, default: "Active" },
     vatDetails: {
-        vatNo: { type: String, required: true },
-        vatEffectiveDate: { type: Date, required: true }
+        vatNo: {
+            type: String,
+            required: function () { return this.vatDetails != null; }
+        },
+        vatEffectiveDate: {
+            type: Date,
+            required: function () { return this.vatDetails != null; }
+        }
     },
+    dailyRate: { type: Number, required: true },
     bankDetails: {
-        bankName: { type: String, required: true },
-        sortCode: { type: String, required: true },
-        accNo: { type: String, required: true },
-        accName: { type: String, required: true },
-        bankType: { type: String, required: true }
+        type: new mongoose.Schema({
+            bankName: { type: String, required: true },
+            sortCode: { type: String, required: true },
+            accNo: { type: String, required: true },
+            accName: { type: String, required: true },
+            bankType: { type: String, required: true }
+        }, {_id: false}),
+        required: true
     },
     passportDetails: {
-        issuedFrom: { type: String },
-        passportNumber: { type: String },
-        passportValidity: { type: Date },
-        passportExpiry: { type: Date },
+        type: new mongoose.Schema({
+            issuedFrom: { type: String, required: true },
+            passportNumber: { type: String, required: true },
+            passportValidity: { type: Date, required: true },
+            passportExpiry: { type: Date, required: true }
+        }, { _id: false }),
+        required: true
     },
     rightToWorkDetails: {
-        rightToWorkValidity: { type: Date },
-        rightToWorkExpiry: { type: Date },
+        type: new mongoose.Schema({
+            rightToWorkValidity: { type: Date, required: true },
+            rightToWorkExpiry: { type: Date, required: true }
+        }, { _id: false }),
+        required: true
     },
     profilePic: { type: String },
     drivingLicenseDetails: {
-        dlNumber: { type: String, maxlength: 20 },  // Optional length validation
-        dlValidity: { type: Date },
-        dlExpiry: { type: Date }, 
-        dlIssue: { type: Date },
+        type: new mongoose.Schema({
+            dlNumber: { type: String, maxlength: 20, required: true },
+            dlValidity: { type: Date, required: true },
+            dlExpiry: { type: Date, required: true }, 
+            dlIssue: { type: Date, required: true }
+        }, { _id: false }),
+        required: true
     },
     ecsDetails: {
         ecsIssue: { type: Date },
@@ -54,7 +74,12 @@ const PersonnelSchema = new mongoose.Schema({
     expiredReasons: { type: Array },
     dailyRate: { type: Number },
     // File Uploads
-    signature: { type: String },
+    signature: [
+      {
+        original: { type: String },
+        timestamp: { type: Date }
+      }
+    ],
     profilePicture: [
         {
             original: { type: String },

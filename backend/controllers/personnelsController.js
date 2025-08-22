@@ -81,8 +81,8 @@ const addPersonnel = async (req, res) => {
   const personnelData = req.body;
 
   // Parse JSON fields
-  personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
-  personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
+  //personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
+  //personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
 
   // Create empty arrays for standard documents
   const documentFields = [
@@ -102,6 +102,7 @@ const addPersonnel = async (req, res) => {
     ...personnelInitFields,
     additionalDocs: {},  // initially as a plain object
     docTimeStamps: {},
+    disabled: false
   });
 
   // Temporary Map to hold additionalDocs during file processing

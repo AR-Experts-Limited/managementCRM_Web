@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const s3 = require('./aws'); 
-const { addDayInvoice, updateComments, updateDayInvoice, deleteDayInvoice, fetchDayInvoices, fetchDayInvoiceById, fetchDayInvoiceByPersonnelId, fetchDayInvoicesBySiteAndWeek, workingHours, uploadInvoice } = require('../controllers/dayInvoiceController');
+const { addDayInvoice, updateComments, updateDayInvoice, deleteDayInvoice, fetchDayInvoices, fetchDayInvoiceById, fetchDayInvoiceByPersonnelId, fetchDayInvoicesByRoleAndWeek, workingHours, uploadInvoice } = require('../controllers/dayInvoiceController');
 
 const upload = multer({
   storage: multerS3({
@@ -26,7 +26,7 @@ router.put('/comments', updateComments);
 router.put('/:invoiceId', updateDayInvoice);
 router.delete('/', deleteDayInvoice);
 router.get('/', fetchDayInvoices);
-router.get('/siteandweek-multi', fetchDayInvoicesBySiteAndWeek);
+router.get('/roleandweek', fetchDayInvoicesByRoleAndWeek);
 router.post('/workinghours', workingHours);
 router.get('/personnel', fetchDayInvoiceByPersonnelId);
 router.post('/uploadInvoice', upload.any(), uploadInvoice);

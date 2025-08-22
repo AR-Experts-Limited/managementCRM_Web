@@ -16,7 +16,7 @@ function getDateOfISOWeek(week, year) {
 
 // Helper function to get models from req.db
 const getModels = (req) => ({
-  Deduction: req.db.model('Deduction', require('../models/deductions').schema),
+  Deduction: req.db.model('Deduction', require('../models/Deduction').schema),
   Personnel: req.db.model('Personnel', require('../models/Personnel').schema),
   DayInvoice: req.db.model('DayInvoice', require('../models/DayInvoice').schema),
   WeeklyInvoice: req.db.model('WeeklyInvoice', require('../models/WeeklyInvoice').schema),
@@ -62,12 +62,12 @@ const checkDayInvoice = async (req, res) => {
 }
 
 const addDeduction = async (req, res) => {
-  const { site, personnelId, user_ID, personnelName, date, signed, week } = req.body;
+  const { role, personnelId, user_ID, personnelName, serviceType, date, signed, week, rate } = req.body;
   let { addedBy } = req.body;
 
   try {
-    const { Deduction, DayInvoice, WeeklyInvoice, User, Notification, Driver } = getModels(req);
-    const doc = req.files[0]?.location || '';
+    const { Deduction, DayInvoice, WeeklyInvoice, User, Notification } = getModels(req);
+    const doc = req.files?.[0]?.location || '';
 
     // Step 1: Check DayInvoice
     const dayInvoice = await DayInvoice.findOne({ personnelId, date });
@@ -138,15 +138,16 @@ const addDeduction = async (req, res) => {
 
     // Step 3: Create and save Deduction
     const newDeduction = new Deduction({
-      site,
+      role,
       personnelId,
       user_ID,
       personnelName,
       rate: +parseFloat(rate).toFixed(2),
       date,
+      serviceType,
       signed,
       deductionDocument: doc,
-      addedBy: JSON.parse(addedBy),
+      addedBy: typeof addedBy === 'string' ? JSON.parse(addedBy) : addedBy,
       week,
     });
     await newDeduction.save();
@@ -161,8 +162,9 @@ const addDeduction = async (req, res) => {
         user_ID,
         date,
         personnelName,
-        site,
+        role,
         rate: +parseFloat(newDeduction.rate).toFixed(2),
+        serviceType: newDeduction.serviceType,
         signed: newDeduction.signed,
         deductionDocument: newDeduction.deductionDocument,
       });
@@ -170,7 +172,7 @@ const addDeduction = async (req, res) => {
       await dayInvoice.save();
 
       // Step 5: Update WeeklyInvoice
-      const weeklyInvoice = await WeeklyInvoice.findOne({ driverId, serviceWeek })
+      const weeklyInvoice = await WeeklyInvoice.findOne({ personnelId, serviceWeek })
         .populate('personnelId')
         .populate('invoices');
 
@@ -235,7 +237,7 @@ const addDeduction = async (req, res) => {
       const message = {
         to: user.expoPushTokens,
         title: 'New Deduction Added',
-        body: `A new deduction has been added for ${personnelName} at ${site}`,
+        body: `A new deduction has been added for ${personnelName}`,
         data: { deductionId: newDeduction._id },
         isRead: false,
       };
@@ -251,7 +253,7 @@ const addDeduction = async (req, res) => {
       notification: {
         title: 'New Deduction Added Common',
         user_ID,
-        body: `A new deduction has been added for ${personnelName} at ${site}`,
+        body: `A new deduction has been added for ${personnelName}`,
         data: { deductionId: newDeduction._id },
         isRead: false,
       },
@@ -297,7 +299,7 @@ const deleteDeduction = async (req, res) => {
       // Step 2: Recalculate WeeklyInvoice
       const { personnelId, serviceWeek } = dayInvoice;
       const weeklyInvoice = await WeeklyInvoice.findOne({ personnelId, serviceWeek })
-        .populate('driverId')
+        .populate('personnelId')
         .populate('invoices');
 
       if (weeklyInvoice) {
@@ -364,7 +366,7 @@ const deleteDeduction = async (req, res) => {
       const message = {
         to: user.expoPushTokens,
         title: 'Deduction Removed',
-        body: `A deduction for ${deduction.personnelName} at ${deduction.site} has been removed`,
+        body: `A deduction for ${deduction.personnelName} has been removed`,
         data: { deductionId: deduction._id },
         isRead: false,
       };
@@ -380,7 +382,7 @@ const deleteDeduction = async (req, res) => {
       notification: {
         title: 'Deduction Removed',
         user_ID: deduction.user_ID,
-        body: `A deduction for ${deduction.personnelName} at ${deduction.site} has been removed`,
+        body: `A deduction for ${deduction.personnelName} has been removed`,
         data: { deductionId: deduction._id },
         isRead: false,
       },
@@ -403,16 +405,16 @@ const deleteDeduction = async (req, res) => {
 
 //Get Deductions where Personnel is not Disabled
 const fetchDeductions = async (req, res) => {
-  const { site } = req.query; // Optional site filter
+  const { role } = req.query; // Optional role filter
 
   try {
     const { Deduction, Personnel } = getModels(req); // Ensure both models are registered
 
-    // Step 1: Fetch all deductions (optionally filtered by site)
-    const query = site ? { site } : {};
-    const deductions = await Deduction.find(query).populate('associatedIncentive');
+    // Step 1: Fetch all deductions (optionally filtered by role)
+    const query = role ? { role } : {};
+    const deductions = await Deduction.find(query);
 
-    // Step 2: Get all driverIds from those deductions
+    // Step 2: Get all personnelIds from those deductions
     const personnelIds = deductions.map(d => d.personnelId);
 
     // Step 3: Fetch only disabled drivers (opposite of before)
@@ -435,12 +437,12 @@ const fetchDeductions = async (req, res) => {
   }
 }
 
-// GET deductions filtered by site and ISO week (YYYY-W##)
-const fetchDeductionBySiteWeek = async (req, res) => {
-  const { site, serviceWeek } = req.query;
+// GET deductions filtered by role and ISO week (YYYY-W##)
+const fetchDeductionByRoleWeek = async (req, res) => {
+  const { role, serviceWeek } = req.query;
 
-  if (!site || !serviceWeek) {
-    return res.status(400).json({ message: "Both 'site' and 'serviceWeek' are required." });
+  if (!role || !serviceWeek) {
+    return res.status(400).json({ message: "Both 'role' and 'serviceWeek' are required." });
   }
 
   try {
@@ -453,7 +455,7 @@ const fetchDeductionBySiteWeek = async (req, res) => {
 
     // Query for deductions that fall in that week
     const deductions = await Deduction.find({
-      site,
+      role,
       date: {
         $gte: startDate,
         $lte: endDate,
@@ -462,7 +464,7 @@ const fetchDeductionBySiteWeek = async (req, res) => {
 
     res.status(200).json(deductions);
   } catch (error) {
-    console.error("Error fetching deductions for site and week:", error);
+    console.error("Error fetching deductions for role and week:", error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 }
@@ -532,4 +534,4 @@ const fetchAllDeductionsForPersonnel = async (req, res) => {
   }
 }
 
-module.exports = { checkDayInvoice, addDeduction, deleteDeduction, fetchDeductions, fetchAllDeductionsForPersonnel, fetchDeductionBySiteWeek, fetchDeductionByPersonnelId, uploadDocument, deleteUpload }
+module.exports = { checkDayInvoice, addDeduction, deleteDeduction, fetchDeductions, fetchAllDeductionsForPersonnel, fetchDeductionByRoleWeek, fetchDeductionByPersonnelId, uploadDocument, deleteUpload }

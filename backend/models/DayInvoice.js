@@ -8,10 +8,10 @@ const dayInvoiceSchema = new mongoose.Schema({
     personnelName: { type: String, required: true },
     personnelEmail: { type: String, required: true },
     date: { type: Date, required: true },
-    site: { type: String, required: true },
+    role: { type: String, required: true },
     week: { type: String, required: true },
     incentiveDetail: {
-      type: Array,
+      type: [DeductionSchema],
       default: []
     },
     deductionDetail: {

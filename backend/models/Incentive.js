@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const incentiveSchema = new mongoose.Schema({
-  site: { type: String },
+  role: { type: String },
   personnelId: { type: String },
   startDate: { type: Date },
   endDate: { type: Date },
