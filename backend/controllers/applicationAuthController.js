@@ -110,6 +110,8 @@ const verifyOtp = async (req, res) => {
  */
 const login = async (req, res) => {
     const User = req.db.model('User', require('../models/User').schema);
+    const Personnel = req.db.model('Personnel', require('../models/Personnel').schema); // 2. Load the Personnel model for the correct DB
+
     const { email, password, expoPushToken } = req.body;
     if (!email || !password) {
         return res.status(400).json({ success: false, message: 'Email and password are required.' });
@@ -119,6 +121,8 @@ const login = async (req, res) => {
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.' });
         }
+        const personnel = await Personnel.findOne({ user_ID: user.user_ID });
+
 
         const { accessToken, refreshToken } = generateTokens(user);
         user.refreshToken = refreshToken;
@@ -138,6 +142,8 @@ const login = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 user_ID: user.user_ID,
+                personnel_id: personnel ? personnel._id : null 
+
             },
         });
     } catch (error) {
