@@ -13,14 +13,14 @@ const RightToWorkTab = ({ newPersonnel, onInputChange, errors }) => {
                 <div>
                     <DatePicker
                         label="Right to Work Issue Date"
-                        required={newPersonnel.passportIssuedFrom !== "United Kingdom"}
+                        required={newPersonnel?.passportDetails?.issuedFrom !== 'United Kingdom'}
                         iconPosition="left"
-                        value={newPersonnel?.rightToWorkValidity ? new Date(newPersonnel?.rightToWorkValidity) : ''}
+                        value={newPersonnel?.rightToWorkDetails?.rightToWorkValidity ? new Date(newPersonnel.rightToWorkDetails.rightToWorkValidity) : ''}
                         maxDate={new Date()}
-                        error={errors.rightToWorkValidity}
-                        name="rightToWorkValidity"
-                        onChange={(value) => onInputChange(null, value, "rightToWorkValidity")}
-                        disabled={newPersonnel.passportIssuedFrom === "United Kingdom"}
+                        error={errors['rightToWorkDetails.rightToWorkValidity']}
+                        name="rightToWorkDetails.rightToWorkValidity"
+                        onChange={(v) => onInputChange(null, v, 'rightToWorkDetails.rightToWorkValidity')}
+                        disabled={newPersonnel?.passportDetails?.issuedFrom === 'United Kingdom'}
                     />
                     {/* VIC SAYS: The disabled attribute is set based on passportIssuedFrom, which could lead to the field being disabled even if previously filled. Consider adding a warning or clearing the field when disabled to avoid sending stale data in FormData. */}
                     {errors.rightToWorkValidity && <p className='text-sm font-light text-red'>* Please provide right to work issue date</p>}
@@ -29,14 +29,14 @@ const RightToWorkTab = ({ newPersonnel, onInputChange, errors }) => {
                 <div>
                     <DatePicker
                         label="Right to Work Expiry Date"
-                        required={newPersonnel.passportIssuedFrom !== "United Kingdom"}
+                        required={newPersonnel?.passportDetails?.issuedFrom !== 'United Kingdom'}
                         iconPosition="left"
-                        value={newPersonnel?.rightToWorkExpiry ? new Date(newPersonnel?.rightToWorkExpiry) : ''}
+                        value={newPersonnel?.rightToWorkDetails?.rightToWorkExpiry ? new Date(newPersonnel.rightToWorkDetails.rightToWorkExpiry) : ''}
                         minDate={new Date()}
-                        error={errors.rightToWorkExpiry}
-                        name="rightToWorkExpiry"
-                        onChange={(value) => onInputChange(null, value, "rightToWorkExpiry")}
-                        disabled={newPersonnel.passportIssuedFrom === "United Kingdom"}
+                        error={errors['rightToWorkDetails.rightToWorkExpiry']}
+                        name="rightToWorkDetails.rightToWorkExpiry"
+                        onChange={(v) => onInputChange(null, v, 'rightToWorkDetails.rightToWorkExpiry')}
+                        disabled={newPersonnel?.passportDetails?.issuedFrom === 'United Kingdom'}
                     />
                     {errors.rightToWorkExpiry && <p className='text-sm font-light text-red'>* Please provide right to work expiry date</p>}
                 </div>

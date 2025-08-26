@@ -81,8 +81,13 @@ const addPersonnel = async (req, res) => {
   const personnelData = req.body;
 
   // Parse JSON fields
-  //personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
-  //personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
+  personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
+  personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
+  personnelData.drivingLicenseDetails = parseJsonField(personnelData, 'drivingLicenseDetails');
+  personnelData.passportDetails = parseJsonField(personnelData, 'passportDetails');
+  personnelData.rightToWorkDetails = parseJsonField(personnelData, 'rightToWorkDetails');
+  personnelData.ecsDetails = parseJsonField(personnelData, 'ecsDetails');
+  personnelData.bankDetails = parseJsonField(personnelData, 'bankDetails');
 
   // Create empty arrays for standard documents
   const documentFields = [
@@ -174,7 +179,7 @@ const addPersonnel = async (req, res) => {
       personnel: savedPersonnel._id,
       site: personnelData.siteSelection,
       changed: 'personnels',
-      message: `Personnel ${personnelData.firstName} ${personnelData.lastName} has been newly added to ${personnelData.siteSelection.join(", ")}`,
+      message: `Personnel ${personnelData.firstName} ${personnelData.lastName} has been newly added}`,
     };
     await new Notification({ notification, targetDevice: 'website' }).save();
 
@@ -494,7 +499,7 @@ const newUpdate = async (req, res) => {
         personnel: updatedPersonnel._id,
         site: [personnel.siteSelection, updatedPersonnel.siteSelection],
         changed: 'personnels',
-        message: `Personnel ${updatedPersonnel.firstName} ${updatedPersonnel.lastName} was changed from site ${personnel.siteSelection.join(", ")} to ${updatedPersonnel.siteSelection.join(", ")}`,
+        message: `Personnel ${updatedPersonnel.firstName} ${updatedPersonnel.lastName} was changed from site ${personnel.siteSelection} to ${updatedPersonnel.siteSelection}`,
       };
       await new Notification({ notification, targetDevice: 'website' }).save();
     }
@@ -942,7 +947,7 @@ const newUpdate = async (req, res) => {
       personnel: updatedPersonnel._id,
       site: [personnel.siteSelection, updatedPersonnel.siteSelection],
       changed: 'personnels',
-      message: `Personnel ${updatedPersonnel.firstName} ${updatedPersonnel.lastName} was changed from site ${personnel.siteSelection.join(", ")} to ${updatedPersonnel.siteSelection.join(", ")}`,
+      message: `Personnel ${updatedPersonnel.firstName} ${updatedPersonnel.lastName} was changed from site ${personnel.siteSelection} to ${updatedPersonnel.siteSelection}`,
     };
     await new Notification({ notification, targetDevice: 'website' }).save();
   }

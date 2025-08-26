@@ -35,8 +35,7 @@ const PersonnelSchema = new mongoose.Schema({
             bankName: { type: String, required: true },
             sortCode: { type: String, required: true },
             accNo: { type: String, required: true },
-            accName: { type: String, required: true },
-            bankType: { type: String, required: true }
+            accName: { type: String, required: true }
         }, {_id: false}),
         required: true
     },
@@ -51,10 +50,9 @@ const PersonnelSchema = new mongoose.Schema({
     },
     rightToWorkDetails: {
         type: new mongoose.Schema({
-            rightToWorkValidity: { type: Date, required: true },
-            rightToWorkExpiry: { type: Date, required: true }
+            rightToWorkValidity: { type: Date, required: false },
+            rightToWorkExpiry: { type: Date, required: false }
         }, { _id: false }),
-        required: true
     },
     profilePic: { type: String },
     drivingLicenseDetails: {

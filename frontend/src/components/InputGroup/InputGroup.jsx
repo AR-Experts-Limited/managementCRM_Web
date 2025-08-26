@@ -1,6 +1,6 @@
 import { cn } from "../../lib/utils";
 import { useId } from "react";
-import React, { useState, forwardRef } from "react";
+import React, { useState, forwardRef, useEffect, useRef } from "react";
 import PhoneInput from "react-country-phone-input";
 import "react-country-phone-input/lib/plain.css";
 
@@ -24,6 +24,7 @@ import "react-country-phone-input/lib/plain.css";
  * @param {boolean} [props.error] - Whether to show error styling
  * @param {string} [props.defaultValue] - Default input value
  * @param {React.ReactNode} [props.children] - Children elements (for dropdown)
+ * @param {{label: string, value: string}[]} [props.options] - Options for multiselect
  * @returns {JSX.Element} Input group component
  * @author Sanjaykumar Ramachandran
  */
@@ -54,8 +55,20 @@ const InputGroup = forwardRef(({
   inputStyles,
   accept,
   maxLength,
+  options,
 }, ref) => {
   const id = useId();
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const wrapperRef = useRef(null);
+  
+  useEffect(() => {
+    const onDown = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
 
   // Function to render the correct input based on type
   const renderInput = () => {
@@ -168,6 +181,134 @@ const InputGroup = forwardRef(({
             {children}
           </select>
         );
+        case "multiselect":
+          // expects: value = string[], options = [{label, value}]
+          const selectedValues = Array.isArray(value) ? value : [];
+          const opts = Array.isArray(options) ? options : [];
+
+          const emitChange = (nextArr) => {
+            if (onChange) onChange({ target: { name, value: nextArr } });
+          };
+          const toggleValue = (v) => {
+            const exists = selectedValues.includes(v);
+            const next = exists
+              ? selectedValues.filter(x => x !== v)
+              : [...selectedValues, v];
+            emitChange(next);
+          };
+          const removeValue = (v, e) => {
+            if (e) e.stopPropagation();
+            emitChange(selectedValues.filter(x => x !== v));
+          };
+          const onKeyDown = (e) => {
+            if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+              e.preventDefault(); setOpen(true); setActiveIndex(0); return;
+            }
+            if (!open) {
+              if (e.key === "Backspace" && selectedValues.length) {
+                emitChange(selectedValues.slice(0, -1));
+              }
+              return;
+            }
+            if (e.key === "Escape") { setOpen(false); return; }
+            if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex(i => Math.min(i + 1, opts.length - 1)); }
+            if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIndex(i => Math.max(i - 1, 0)); }
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              const opt = opts[activeIndex];
+              if (opt) toggleValue(opt.value);
+            }
+          };
+
+          return (
+            <div ref={wrapperRef} className="relative">
+              {/* Clickable field displaying tags */}
+              <div
+                id={id}
+                role="combobox"
+                aria-expanded={open}
+                aria-haspopup="listbox"
+                tabIndex={0}
+                onClick={() => setOpen(o => !o)}
+                onKeyDown={onKeyDown}
+                className={cn(
+                  "w-full min-h-[44px] rounded-lg border-[1.5px] border-neutral-300 bg-transparent outline-none transition",
+                  "focus:border-primary-500 data-[active=true]:border-primary-500 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary-500",
+                  "px-5.5 py-2.5 flex flex-wrap items-center gap-2 cursor-text",
+                  iconPosition === "left" && "pl-12.5",
+                  error ? "border-[1.5px] border-red animate-pulse" : ""
+                )}
+                data-active={active}
+              >
+                {selectedValues.length === 0 ? (
+                  <span className="text-dark-6 dark:text-white/60">{placeholder || "Select…"}</span>
+                ) : (
+                  selectedValues.map(v => {
+                    const o = opts.find(x => x.value === v);
+                    const label = o ? o.label : v;
+                    return (
+                      <span
+                        key={v}
+                        className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-[#F5F7FA] px-2.5 py-1 text-sm text-[#111827] dark:border-dark-3 dark:bg-dark-3 dark:text-white"
+                      >
+                        {label}
+                        <button
+                          type="button"
+                          onClick={(e) => removeValue(v, e)}
+                          aria-label={`Remove ${label}`}
+                          className="rounded hover:opacity-80 focus:outline-none"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })
+                )}
+                {/* caret */}
+                <svg className="ml-auto h-4 w-4 opacity-60 pointer-events-none" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06z" />
+                </svg>
+              </div>
+
+              {/* Dropdown */}
+              {open && (
+                <ul
+                  role="listbox"
+                  aria-labelledby={id}
+                  className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-dark-3 dark:bg-dark-2"
+                >
+                  {opts.length === 0 && (
+                    <li className="px-3 py-2 text-sm text-neutral-500 dark:text-white/70">No options</li>
+                  )}
+                  {opts.map((o, idx) => {
+                    const selected = selectedValues.includes(o.value);
+                    return (
+                      <li
+                        key={o.value}
+                        role="option"
+                        aria-selected={selected}
+                        onMouseDown={(e) => e.preventDefault()} // keep focus
+                        onClick={() => toggleValue(o.value)}
+                        className={cn(
+                          "flex cursor-pointer select-none items-center justify-between px-3 py-2 text-sm",
+                          "hover:bg-neutral-100 dark:hover:bg-dark-3",
+                          idx === activeIndex ? "bg-neutral-50 dark:bg-dark-3" : "",
+                          selected ? "font-medium" : ""
+                        )}
+                      >
+                        <span>{o.label}</span>
+                        {selected && (
+                          <svg className="h-4 w-4 opacity-80" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.01 7.07a1 1 0 0 1-1.423.01L3.29 8.798a1 1 0 1 1 1.42-1.41l3.15 3.171 6.3-6.35a1 1 0 0 1 1.544.081z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
       default:
         return (
           <input

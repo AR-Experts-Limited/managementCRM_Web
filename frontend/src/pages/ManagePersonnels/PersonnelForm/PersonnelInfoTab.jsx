@@ -8,7 +8,7 @@ import countries from '../../../lib/countries';
 import { FcInfo } from 'react-icons/fc';
 import Nationality from '../../../lib/Nationality';
 
-const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, onInputChange, errors, setErrors, age, setAge, personnelMode }) => {
+const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, onInputChange, errors, setErrors, age, setAge, personnelMode, roles }) => {
     const initialTypeOfPersonnel = useRef()
     const initialSite = useRef()
 
@@ -30,136 +30,21 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
         setAge(calculatedAge);
     }, [newPersonnel.dateOfBirth])
 
-    useEffect(() => {
-        if (!initialTypeOfPersonnel.current) {
-            initialTypeOfPersonnel.current = newPersonnel.typeOfPersonnel; // shallow copy
-        }
-
-        if (!initialSite.current) {
-            initialSite.current = newPersonnel.siteSelection
-        }
-    }, []);
-
     const handleVatDetailsChange = (name, value) => {
-        setNewPersonnel(prev => {
-            let updatedVatDetails = { ...prev.vatDetails, [name]: value };
-
-            // If vatNo is cleared, also clear vatEffectiveDate
-            if (name === "vatNo" && !value) {
-                updatedVatDetails.vatEffectiveDate = "";
-            }
-
-            return {
-                ...prev,
-                vatDetails: updatedVatDetails
-            };
-        });
-
-        setErrors(prevErrors => ({
-            ...prevErrors,
-            [name]: false
-        }));
-    };
-
-    const setCustomTypeOfPersonnel = (customTypeOfPersonnel) => {
-        setNewPersonnel(prev => ({
-            ...prev,
-            customTypeOfPersonnel
-        }));
-    }
-
-    const handleChangeOfTypeOfPersonnel = (e) => {
-        const nextType = e.target.value;
-        const tomorrow = new Date(Date.now()).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'numeric',
-            year: 'numeric'
-        }).split('/').join('/');
-
-        let updatedTypeOfPersonnelTrace = [...(newPersonnel.typeOfPersonnelTrace || [])];
-
-        // Only proceed if the initial type isn't empty
-        if (initialTypeOfPersonnel.current !== '') {
-            if (nextType !== initialTypeOfPersonnel.current) {
-                const existingIndex = updatedTypeOfPersonnelTrace.findIndex(trace => trace.timestamp === tomorrow);
-
-                const newTrace = {
-                    from: newPersonnel.typeOfPersonnel,
-                    to: nextType,
-                    timestamp: tomorrow
-                };
-
-                if (existingIndex !== -1) {
-                    // Replace existing trace with same timestamp
-                    updatedTypeOfPersonnelTrace[existingIndex] = newTrace;
-                } else {
-                    // Push new trace
-                    updatedTypeOfPersonnelTrace.push(newTrace);
-                }
-            }
-            else {
-                updatedTypeOfPersonnelTrace.pop()
-            }
+        // Write the field by path
+        onInputChange(null, value, name);
+        // If VAT No is cleared, also clear the effective date
+        if (name === 'vatDetails.vatNo' && !value) {
+          onInputChange(null, '', 'vatDetails.vatEffectiveDate');
         }
-
-        setNewPersonnel(prev => ({
-            ...prev,
-            typeOfPersonnel: nextType,
-            typeOfPersonnelTrace: updatedTypeOfPersonnelTrace
-        }));
+        setErrors(prev => ({ ...prev, [name]: false }));
     };
 
     const handleChangeOfSite = (e) => {
-        const nextSite = e.target.value;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day
-
-        let updatedSiteTrace = [...(newPersonnel.siteTrace || [])];
-
-        // Only proceed if the initial site isn't empty
-        if (initialSite.current !== '') {
-            if (nextSite !== initialSite.current) {
-                const existingIndex = updatedSiteTrace.findIndex(trace =>
-                    new Date(trace.timestamp).getTime() === today.getTime()
-                );
-
-                const newTrace = {
-                    from: newPersonnel.siteSelection,
-                    to: nextSite,
-                    timestamp: today
-                };
-
-                if (existingIndex !== -1) {
-                    const existingTrace = updatedSiteTrace[existingIndex];
-
-                    // Check if from === to after update
-                    if (existingTrace.from === nextSite) {
-                        // ❌ from and to are same → remove trace
-                        updatedSiteTrace.splice(existingIndex, 1);
-                    } else {
-                        // ✅ Replace with new trace
-                        updatedSiteTrace[existingIndex] = {
-                            from: existingTrace.from,
-                            to: nextSite,
-                            timestamp: today
-                        };
-                    }
-                } else {
-                    // Push new trace
-                    updatedSiteTrace.push(newTrace);
-                }
-            } else {
-                updatedSiteTrace.pop();
-            }
-        }
-
-        setNewPersonnel(prev => ({
-            ...prev,
-            siteSelection: nextSite,
-            siteTrace: updatedSiteTrace
-        }));
+        setNewPersonnel(prev => ({ ...prev, siteSelection: e.target.value }));
     };
 
+    const siteOptions = (sites ?? []).map(s => ({ label: s.siteName, value: s.siteKeyword }));
 
     return (
 
@@ -298,13 +183,13 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                         placeholder="Enter phone number"
                         type="phone"
                         required={true}
-                        name="PhoneNo"
-                        value={newPersonnel.PhoneNo}
-                        onChange={(value) => onInputChange(null, value, "PhoneNo")}
-                        error={errors.PhoneNo}
+                        name="phone"
+                        value={newPersonnel.phone}
+                        onChange={(value) => onInputChange(null, value, "phone")}
+                        error={errors.phone}
 
                     />
-                    <p className={`${errors.PhoneNo ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid phone number</p>
+                    <p className={`${errors.phone ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid phone number</p>
                 </div>
 
                 {/* Email */}
@@ -314,111 +199,54 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                         placeholder="Enter email address"
                         type="email"
                         required={true}
-                        name="Email"
+                        name="email"
                         iconPosition='left'
                         icon={<FaEnvelope className='text-neutral-300' />}
-                        error={errors.Email}
-                        value={newPersonnel.Email}
+                        error={errors.email}
+                        value={newPersonnel.email}
                         onChange={(e) => onInputChange(e)}
                     />
-                    <p className={`${errors.Email ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* {errors.Email}</p>
-                </div>
-
-                {/* Vehicle Type */}
-                <div className='flex gap-2 justify-between cursor-pointer'>
-                    <div className='flex-1'>
-                        <InputGroup type='dropdown'
-                            name='typeOfPersonnel'
-                            label='Vehicle Type'
-                            className={`${newPersonnel.typeOfPersonnel === '' && 'text-gray-400'}`}
-                            value={newPersonnel.typeOfPersonnel}
-                            onChange={handleChangeOfTypeOfPersonnel}
-                            error={errors.typeOfPersonnel}
-                            iconPosition="left"
-                            icon={<FaCar className='text-neutral-300' />}
-                            required={true}>
-                            <option disabled value="">Select Vehicle Type</option>
-                            <option value='Own Vehicle'>Own Vehicle</option>
-                            <option value='Company Vehicle'>Company Vehicle</option>
-                        </InputGroup>
-                        <p className={`${errors.typeOfPersonnel ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide vehicle type</p>
-                    </div>
-                    {newPersonnel.typeOfPersonnelTrace?.length > 0 && (<div className='group relative self-center rounded-lg '>
-                        <div className='absolute top-5 right-3 z-3 hidden group-hover:block bg-white  border border-neutral-200 max-h-[20rem] overflow-auto'>
-                            <table className='table-general'>
-                                <thead>
-                                    {newPersonnel.typeOfPersonnelTrace?.length > 0 && <tr style={{ position: 'sticky', top: '1px', fontWeight: 'bold', borderBottom: '1px solid black', backgroundColor: 'white' }}>
-                                        <td>Changed from</td>
-                                        <td>Changed to</td>
-                                        <td>Effective Date</td>
-                                    </tr>}
-                                </thead>
-                                <tbody>
-                                    {newPersonnel.typeOfPersonnelTrace?.length > 0 ? newPersonnel.typeOfPersonnelTrace.map((ToD) => (
-                                        <tr>
-                                            <td>{ToD.from}</td>
-                                            <td>{ToD.to}</td>
-                                            <td>{ToD.timestamp}</td>
-                                        </tr>
-                                    )) : <tr><td colSpan={3}>--No Changes recorded--</td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
-                        <FcInfo size={25} />
-                    </div>)}
+                    <p className={`${errors.Email ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* {errors.email}</p>
                 </div>
 
                 {/* Sites */}
                 {(personnelMode === 'create') && <div>
-                    <InputGroup type='dropdown'
-                        name='siteSelection'
-                        label='Select Site'
-                        className={`${newPersonnel.siteSelection === '' && 'text-gray-400'}`}
+                    <InputGroup
+                        type="multiselect"
+                        name="siteSelection"
+                        label="Select Site(s)"
+                        placeholder="Select site(s)"
                         value={newPersonnel.siteSelection}
                         onChange={handleChangeOfSite}
                         error={errors.siteSelection}
                         iconPosition="left"
+                        icon={<FaBuildingUser className="text-neutral-300" />}
+                        required={true}
+                        options={siteOptions}
+                    />
+                    <p className={`${errors.siteSelection ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
+                </div>}
+
+                {(personnelMode === 'create') && <div>
+                    <InputGroup type='dropdown'
+                        name='role'
+                        label='Select Role'
+                        className={`${newPersonnel.role === '' && 'text-gray-400'}`}
+                        value={newPersonnel.role}
+                        onChange={(e) => onInputChange(e)}
+                        error={errors.role}
+                        iconPosition="left"
                         icon={<FaBuildingUser className='text-neutral-300' />}
                         required={true}>
-                        <option value="">Select Site</option>
-                        {sites?.map((site) => (
-                            <option value={site.siteKeyword}>{site.siteName}</option>
+                        <option value="">-Select Role-</option>
+                        {roles.map((role) => (
+                            <option key={role.roleName} value={role.roleName}>
+                                {role.roleName}
+                            </option>
                         ))}
                     </InputGroup>
                     <p className={`${errors.siteSelection ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
                 </div>}
-
-                {/* TransportId */}
-                <div>
-                    <InputGroup
-                        label="Transport Id"
-                        placeholder="Enter transport id"
-                        type="text"
-                        name="transportId"
-                        iconPosition='left'
-                        icon={<GoNumber className='text-neutral-300' />}
-                        value={newPersonnel.transportId}
-                        onChange={(e) => onInputChange(e)}
-                        error={errors.transportId}
-                    />
-                    <p className={`${errors.transportId ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid transport ID</p>
-                </div>
-
-                {/* Transporter Name */}
-                <div>
-                    <InputGroup
-                        label="Transporter Name"
-                        placeholder="Enter Transporter Name"
-                        type="text"
-                        name="transporterName"
-                        iconPosition='left'
-                        icon={<FaTruck className='text-neutral-300' />}
-                        value={newPersonnel.transporterName}
-                        onChange={(e) => onInputChange(e)}
-                        error={errors.transporterName}
-                    />
-                    <p className={`${errors.transporterName ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid transporter name</p>
-                </div>
 
                 {/* UTR No. */}
                 <div>
@@ -442,27 +270,27 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                         label="VAT Number"
                         placeholder="Enter VAT No."
                         type="text"
-                        name="vatNo"
+                        name="vatDetails.vatNo"
                         iconPosition='left'
                         icon={<GoNumber className='text-neutral-300' />}
-                        value={newPersonnel.vatDetails?.vatNo}
-                        onChange={(e) => handleVatDetailsChange('vatNo', e.target.value)}
-                        error={errors.vatNo}
+                        value={newPersonnel.vatDetails?.vatNo ?? ''}
+                        onChange={(e) => handleVatDetailsChange('vatDetails.vatNo', e.target.value)}
+                        error={errors['vatDetails.vatNo']}
                     />
-                    <p className={`${errors.vatNo ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid VAT number</p>
+                    <p className={`${errors['vatDetails.vatNo'] ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid VAT number</p>
                 </div>
 
                 <div>
                     <DatePicker
                         label="VAT Effective Date"
-                        value={newPersonnel.vatDetails?.vatEffectiveDate ? new Date(newPersonnel.vatDetails?.vatEffectiveDate) : ''}
-                        name="vatEffectiveDate"
+                        value={newPersonnel.vatDetails?.vatEffectiveDate ? new Date(newPersonnel.vatDetails.vatEffectiveDate) : ''}
+                        name="vatDetails.vatEffectiveDate"
                         iconPosition="left"
-                        onChange={(value) => handleVatDetailsChange('vatEffectiveDate', value)}
+                        onChange={(v) => handleVatDetailsChange('vatDetails.vatEffectiveDate', v)}
                         disabled={!newPersonnel.vatDetails || newPersonnel.vatDetails?.vatNo === ''}
-                        error={errors.vatEffectiveDate}
+                        error={errors['vatDetails.vatEffectiveDate']}
                     />
-                    <p className={`${errors.vatEffectiveDate ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid VAT effective date</p>
+                    <p className={`${errors['vatDetails.vatEffectiveDate'] ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid VAT effective date</p>
                 </div>
                 <div>
                     <DatePicker
@@ -474,30 +302,6 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                         error={errors.dateOfJoining}
                     />
                     <p className={`${errors.dateOfJoining ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a valid date of joining</p>
-                </div>
-                <div>
-                    <DatePicker
-                        label="MOT Due expiry"
-                        value={newPersonnel?.motDueExpiry ? new Date(newPersonnel.motDueExpiry) : ''}
-                        name="motDueExpiry"
-                        minDate={new Date()}
-                        iconPosition="left"
-                        onChange={(value) => onInputChange(null, value, "motDueExpiry")}
-                        error={errors.motDueExpiry}
-                    />
-                    <p className={`${errors.motDueExpiry ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a mot expiry date</p>
-                </div>
-                <div>
-                    <DatePicker
-                        label="Road Tax Expiry"
-                        value={newPersonnel?.roadTaxExpiry ? new Date(newPersonnel.roadTaxExpiry) : ''}
-                        name="roadTaxExpiry"
-                        minDate={new Date()}
-                        iconPosition="left"
-                        onChange={(value) => onInputChange(null, value, "roadTaxExpiry")}
-                        error={errors.roadTaxExpiry}
-                    />
-                    <p className={`${errors.roadTaxExpiry ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a road tax expiry date</p>
                 </div>
             </div>
         </div>

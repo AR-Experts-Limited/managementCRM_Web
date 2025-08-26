@@ -14,7 +14,7 @@ import moment from 'moment'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPersonnel, sites, personnelMode, setPersonnelMode, setToastOpen, personnelsList }) => {
+const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPersonnel, sites, personnelMode, setPersonnelMode, setToastOpen, personnelsList, roles }) => {
     const dispatch = useDispatch();
 
     const [errors, setErrors] = useState({});
@@ -45,66 +45,31 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
             'phone',
             'email',
             'siteSelection',
-            ...(newPersonnel.vatDetails && newPersonnel.vatDetails?.vatNo !== '' ? ['vatEffectiveDate'] : [])
+            ...(newPersonnel?.vatDetails?.vatNo ? ['vatDetails.vatEffectiveDate'] : [])
         ],
-        bankDetails: newPersonnel.bankChoice === 'Personal' ? [
-            'bankName',
-            'sortCode',
-            'bankAccountNumber',
-            'accountName'
-        ] : [
-            'bankNameCompany',
-            'sortCodeCompany',
-            'bankAccountNumberCompany',
-            'accountNameCompany'
+        bankDetails: [
+            'bankDetails.bankName',
+            'bankDetails.sortCode',
+            'bankDetails.accNo',
+            'bankDetails.accName'
         ],
         drivingLicense: [
-            'drivingLicenseNumber',
-            'dlValidity',
-            'dlExpiry'
+            'drivingLicenseDetails.dlNumber',
+            'drivingLicenseDetails.dlValidity',
+            'drivingLicenseDetails.dlExpiry'
         ],
         passport: [
-            'passportIssuedFrom',
-            'passportNumber',
-            'passportValidity',
-            'passportExpiry'
+            'passportDetails.issuedFrom',
+            'passportDetails.passportNumber',
+            'passportDetails.passportValidity',
+            'passportDetails.passportExpiry'
         ],
-        rightToWork: newPersonnel.passportIssuedFrom !== "United Kingdom" ? [
-            'rightToWorkValidity',
-            'rightToWorkExpiry'
-        ] : [],
-        ecs: newPersonnel.ecsInformation ? [
-            'ecsValidity',
-            'ecsExpiry'
-        ] : [],
-        vehicleInsuranceDetails: newPersonnel.typeOfPersonnel === 'Own Vehicle' ? [
-            ...(!newPersonnel.ownVehicleInsuranceNA?.mvi ? [
-                'insuranceProvider',
-                'policyNumber',
-                'policyStartDate',
-                'policyEndDate',
-            ] : []),
-            ...(!newPersonnel.ownVehicleInsuranceNA?.goods ? [
-                'insuranceProviderG',
-                'policyNumberG',
-                'policyStartDateG',
-                'policyEndDateG',
-            ] : []),
-            ...(!newPersonnel.ownVehicleInsuranceNA?.public ? [
-                'insuranceProviderP',
-                'policyNumberP',
-                'policyStartDateP',
-                'policyEndDateP',
-            ] : [])
-        ] : [],
-        selfEmploymentDetails: newPersonnel.employmentStatus === 'Limited Company' && newPersonnel.typeOfPersonnel === 'Company Vehicle' ? [
-            'companyName',
-            'companyRegAddress',
-            'companyRegNo',
-            'companyRegExpiry',
-            ...(newPersonnel.companyVatDetails && newPersonnel.companyVatDetails?.companyVatNo !== '' ? ['companyVatEffectiveDate'] : [])
-
-        ] : []
+        rightToWork: (newPersonnel?.passportDetails?.issuedFrom !== 'United Kingdom')
+            ? ['rightToWorkDetails.rightToWorkValidity', 'rightToWorkDetails.rightToWorkExpiry']
+            : [],
+        ecs: (newPersonnel?.ecsDetails?.active)
+            ? ['ecsDetails.ecsIssue', 'ecsDetails.ecsExpiry']
+            : []
     };
 
     const fileFields = [
@@ -124,13 +89,13 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
     ];
 
     const objectFields = [
-        "ownVehicleInsuranceNA",
-        "vatDetails",
-        "companyVatDetails",
-        "customTypeOfPersonnel",
-        "typeOfPersonnelTrace",
-        "siteTrace"
-    ]
+        'vatDetails',
+        'bankDetails',
+        'drivingLicenseDetails',
+        'passportDetails',
+        'rightToWorkDetails',
+        'ecsDetails'
+    ];
 
     // Helper function to convert affectedInvoices to CSV
     const convertToCSV = (type, invoices) => {
@@ -160,154 +125,171 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
     };
 
     const validateFields = () => {
-        const newErrors = {};
-        const currentTabFields = requiredFields[selectedTab] || [];
+      const newErrors = {};
+      const currentTabFields = requiredFields[selectedTab] || [];
 
-        currentTabFields.forEach((key) => {
-            if (key === 'Email') {
-                if (!/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(newPersonnel.Email)) {
-                    newErrors.Email = "Enter a valid email";
-
-                }
-                else if (personnelMode === 'create' && personnelsList.some((personnel) => personnel.Email === newPersonnel.Email)) {
-                    newErrors.Email = "Email already exists";
-                }
-            }
-            else if (key === 'vatEffectiveDate') {
-                if (!newPersonnel.vatDetails?.vatEffectiveDate) {
-                    newErrors.vatEffectiveDate = true;
-                }
-            }
-            else if (key === 'companyVatEffectiveDate') {
-                if (!newPersonnel.companyVatDetails?.companyVatEffectiveDate) {
-                    newErrors.companyVatEffectiveDate = true;
-                }
-
-            } else {
-                const value = newPersonnel[key];
-                if (typeof value === 'string' ? value.trim() === '' : !value) {
-                    newErrors[key] = true;
-                }
-            }
-        });
-
-
-        // Validate email format
-        if (selectedTab === 'personnelInfo' && newPersonnel.Email && !/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(newPersonnel.Email)) {
-            newErrors.Email = true;
+      // Requireds by path
+      currentTabFields.forEach((path) => {
+        const value = getByPath(newPersonnel, path);
+        if (typeof value === 'string' ? value.trim() === '' : !value) {
+          newErrors[path] = true; // key by path string
         }
+      });
 
-        if (selectedTab === 'personnelInfo' && newPersonnel.vatDetails?.vatNo !== '' && newPersonnel.vatDetails?.vatEffectiveDate === '') {
-            newErrors.vatEffectiveDate = true
+      // Email format + duplicate (always key 'email')
+      if (selectedTab === 'personnelInfo') {
+        const email = newPersonnel?.email ?? '';
+        if (email && !/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(email)) {
+          newErrors['email'] = 'Enter a valid email';
+        } else if (
+          email &&
+          personnelMode === 'create' &&
+          personnelsList.some((p) => p.email === email)
+        ) {
+          newErrors['email'] = 'Email already exists';
         }
+      }
 
-        if (selectedTab === 'selfEmploymentDetails' && newPersonnel.companyVatDetails?.companyVatNo !== '' && newPersonnel.companyVatDetails?.companyVatEffectiveDate === '') {
-            newErrors.companyVatEffectiveDate = true
+      // Sort code format (bankDetails.sortCode)
+      if (selectedTab === 'bankDetails') {
+        const sortCode = newPersonnel?.bankDetails?.sortCode ?? '';
+        if (sortCode && !/^[0-9]{6}$/.test(sortCode)) {
+          newErrors['bankDetails.sortCode'] = true;
         }
+      }
 
-        // Validate sort code format
-        if (selectedTab === 'bankDetails') {
-            const sortCodeRegex = /^[0-9]{6}$/;
-            if (newPersonnel.bankChoice === 'Personal' && newPersonnel.sortCode && !sortCodeRegex.test(newPersonnel.sortCode)) {
-                newErrors.sortCode = true;
-            }
-            if (newPersonnel.bankChoice === 'Company' && newPersonnel.sortCodeCompany && !sortCodeRegex.test(newPersonnel.sortCodeCompany)) {
-                newErrors.sortCodeCompany = true;
-            }
-        }
+      setErrors(newErrors);
 
-        setErrors(newErrors);
-
-        // Scroll to the first error input
-        const firstErrorField = Object.keys(newErrors)[0];
-        if (firstErrorField) {
-            const element = document.querySelector(`[name="${firstErrorField}"]`);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return false;
-        }
-
-        return Object.keys(newErrors).length === 0;
+      const firstErrorField = Object.keys(newErrors)[0];
+      if (firstErrorField) {
+        const el = document.querySelector(`[name="${firstErrorField}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+      return true;
     };
 
     const validateAllFields = () => {
-        const newErrors = {};
+      const newErrors = {};
 
-        Object.keys(requiredFields).forEach(tab => {
-            requiredFields[tab].forEach((key) => {
-                if (key === 'vatEffectiveDate') {
-                    if (!newPersonnel.vatDetails?.vatEffectiveDate) {
-                        newErrors.vatEffectiveDate = true;
-                    }
-                }
-                else if (key === 'companyVatEffectiveDate') {
-                    if (!newPersonnel.companyVatDetails?.companyVatEffectiveDate) {
-                        newErrors.companyVatEffectiveDate = true;
-                    }
-
-                } else {
-                    const value = newPersonnel[key];
-                    if (typeof value === 'string' ? value.trim() === '' : !value) {
-                        newErrors[key] = true;
-                    }
-                }
-            });
+      Object.keys(requiredFields).forEach((tabId) => {
+        (requiredFields[tabId] || []).forEach((path) => {
+          const value = getByPath(newPersonnel, path);
+          if (typeof value === 'string' ? value.trim() === '' : !value) {
+            newErrors[path] = true; // key by path
+          }
         });
+      });
 
-        // Validate email format
-        if (newPersonnel.Email && !/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(newPersonnel.Email)) {
-            newErrors.Email = "Enter a valid email";
+      // Email format + duplicate
+      const email = newPersonnel?.email ?? '';
+      if (email && !/^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(email)) {
+        newErrors['email'] = 'Enter a valid email';
+      } else if (
+        email &&
+        personnelMode === 'create' &&
+        personnelsList.some((p) => p.email === email)
+      ) {
+        newErrors['email'] = 'Email already exists';
+      }
 
-        }
-        else if (newPersonnel.Email && personnelMode === 'create' && personnelsList.some((personnel) => personnel.Email === newPersonnel.Email)) {
-            newErrors.Email = "Email already exists";
-        }
+      // Sort code format
+      const sortCode = newPersonnel?.bankDetails?.sortCode ?? '';
+      if (sortCode && !/^[0-9]{6}$/.test(sortCode)) {
+        newErrors['bankDetails.sortCode'] = true;
+      }
 
-        // Validate sort code format
-        const sortCodeRegex = /^[0-9]{6}$/;
-        if (newPersonnel.bankChoice === 'Personal' && newPersonnel.sortCode && !sortCodeRegex.test(newPersonnel.sortCode)) {
-            newErrors.sortCode = true;
-        }
-        if (newPersonnel.bankChoice === 'Company' && newPersonnel.sortCodeCompany && !sortCodeRegex.test(newPersonnel.sortCodeCompany)) {
-            newErrors.sortCodeCompany = true;
-        }
+      setErrors(newErrors);
 
-        setErrors(newErrors);
-        // Scroll to the first error input
-        const firstErrorField = Object.keys(newErrors)[0];
-        if (firstErrorField) {
-            const element = document.querySelector(`[name="${firstErrorField}"]`);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return false;
-        }
-
-        return Object.keys(newErrors).length === 0;
+      const firstErrorField = Object.keys(newErrors)[0];
+      if (firstErrorField) {
+        const el = document.querySelector(`[name="${firstErrorField}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+      return true;
     };
 
+    //const onInputChange = (e, inputValue, inputName) => {
+    //    let name, value;
+//
+    //    if (e) {
+    //        if (e.target.type === 'checkbox') {
+    //            value = e.target.checked;
+    //            name = e.target.name;
+    //        } else if (e.target.type === 'file') {
+    //            value = e.target.files[0] || '';
+    //            name = e.target.name;
+    //        } else {
+    //            value = e.target.value;
+    //            name = e.target.name;
+    //        }
+    //    } else {
+    //        name = inputName;
+    //        value = inputValue;
+    //    }
+//
+    //    setErrors((prevErrors) => ({ ...prevErrors, [name]: false }));
+    //    setNewPersonnel((prev) => ({ ...prev, [name]: value }));
+    //};
+
+    // Helper: immutable "set by path" with dot & bracket notation support
+    const setByPath = (obj, path, value) => {
+      const keys = path
+        .replace(/\[(\d+)\]/g, ".$1") // allow e.g. items[0].name
+        .split(".")
+        .filter(Boolean);
+    
+      // Start with a shallow clone of the root
+      const newObj = Array.isArray(obj) ? [...obj] : { ...obj };
+    
+      let curr = newObj;
+      let src = obj;
+    
+      for (let i = 0; i < keys.length - 1; i++) {
+        const k = keys[i];
+        const nextSrc = src?.[k];
+        const nextIsIndex = /^\d+$/.test(keys[i + 1]);
+    
+        // Clone existing branch or create one
+        const next =
+          nextIsIndex
+            ? (Array.isArray(nextSrc) ? [...nextSrc] : [])
+            : (nextSrc && typeof nextSrc === "object" ? { ...nextSrc } : {});
+    
+        curr[k] = next;
+        curr = next;
+        src = nextSrc;
+      }
+  
+      curr[keys[keys.length - 1]] = value;
+      return newObj;
+    };
+
+    const getByPath = (obj, path) => {
+        const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+        return keys.reduce((acc, k) => (acc?.[k] ?? undefined), obj);
+    };
+    
     const onInputChange = (e, inputValue, inputName) => {
-        let name, value;
-
-        if (e) {
-            if (e.target.type === 'checkbox') {
-                value = e.target.checked;
-                name = e.target.name;
-            } else if (e.target.type === 'file') {
-                value = e.target.files[0] || '';
-                name = e.target.name;
-            } else {
-                value = e.target.value;
-                name = e.target.name;
-            }
-        } else {
-            name = inputName;
-            value = inputValue;
-        }
-
-        setErrors((prevErrors) => ({ ...prevErrors, [name]: false }));
-        setNewPersonnel((prev) => ({ ...prev, [name]: value }));
+      let name, value;
+    
+      if (e && e.target) {
+        const { target } = e;
+        name = target.name;
+        if (target.type === "checkbox") value = target.checked;
+        else if (target.type === "file") value = target.files?.[0] ?? "";
+        else value = target.value;
+      } else {
+        name = inputName;
+        value = inputValue;
+      }
+  
+      // You can keep errors flat keyed by the path string
+      setErrors((prev) => ({ ...prev, [name]: false }));
+  
+      // Use setByPath to update nested state immutably
+      setNewPersonnel((prev) => setByPath(prev, name, value));
     };
 
     const handleSubmit = async (e, personnelMode) => {
@@ -342,29 +324,9 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
             }
         });
 
-        // Append ownVehicleInsuranceNA state
-        if (newPersonnel.typeOfPersonnel === 'Own Vehicle') {
-            formData.append('ownVehicleInsuranceNA', JSON.stringify(newPersonnel.ownVehicleInsuranceNA));
-        }
-        else if (newPersonnel.typeOfPersonnel === 'Company Vehicle' && newPersonnel.employmentStatus === 'Limited Company')
-            formData.append('companyVatDetails', JSON.stringify(newPersonnel.companyVatDetails));
-
-        formData.append('vatDetails', JSON.stringify(newPersonnel.vatDetails));
-        formData.append(
-            'customTypeOfPersonnel',
-            newPersonnel.customTypeOfPersonnel ? JSON.stringify(newPersonnel.customTypeOfPersonnel) : null
-        );
-
-        formData.append(
-            'typeOfPersonnelTrace',
-            newPersonnel.typeOfPersonnelTrace ? JSON.stringify(newPersonnel.typeOfPersonnelTrace) : []
-        );
-
-        formData.append(
-            'siteTrace',
-            newPersonnel.siteTrace ? JSON.stringify(newPersonnel.siteTrace) : []
-        );
-
+        objectFields.forEach((key) => {
+          formData.append(key, JSON.stringify(newPersonnel[key] ?? {}));
+        });
 
         if (personnelMode === 'create') {
             let userID = 0;
@@ -464,7 +426,7 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
             <div className='flex-1 p-2'>
                 {/* Tabs Navigation */}
                 <div className='flex justify-between overflow-x-auto snap-x snap-mandatory scrollbar-hide h-12 bg-primary-200/30 py-1 rounded-t-lg backdrop-blur-xl border border-primary-500'>
-                    {tabs.filter((tab) => !['Admin', 'super-admin'].includes(userDetails.role) ? tab.id !== 'bankDetails' : true).map((tab, index) => (
+                    {tabs.map((tab, index) => (
                         <div
                             key={tab.id}
                             className={`flex justify-center m-1 w-full min-w-max dark:text-white snap-start ${index !== tabs.filter((tab) => !['Admin', 'super-admin'].includes(userDetails.role) ? tab.id !== 'bankDetails' : true).length - 1 ? 'border-r-2 border-primary-400' : ''}`}
@@ -495,6 +457,7 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
                         age={age}
                         setAge={setAge}
                         sites={sites}
+                        roles={roles}
                     />
                 </div>
             </div>

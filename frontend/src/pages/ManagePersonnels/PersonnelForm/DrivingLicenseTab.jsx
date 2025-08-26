@@ -9,10 +9,10 @@ import { handleFileView } from '../supportFunctions'
 const DrivingLicenseTab = ({ newPersonnel, onInputChange, errors }) => {
 
     const calculateDLValidity = () => {
-        if (!newPersonnel.dlValidity || !newPersonnel.dlExpiry) return '';
+        if (!newPersonnel.drivingLicenseDetails.dlValidity || !newPersonnel.drivingLicenseDetails.dlExpiry) return '';
 
-        const issueDate = new Date(newPersonnel.dlValidity);
-        const expiryDate = new Date(newPersonnel.dlExpiry);
+        const issueDate = new Date(newPersonnel.drivingLicenseDetails.dlValidity);
+        const expiryDate = new Date(newPersonnel.drivingLicenseDetails.dlExpiry);
 
         if (expiryDate < issueDate) return 'Invalid Dates';
 
@@ -45,9 +45,9 @@ const DrivingLicenseTab = ({ newPersonnel, onInputChange, errors }) => {
                         placeholder="Enter DL number"
                         type="text"
                         required={true}
-                        name="drivingLicenseNumber"
+                        name="drivingLicenseDetails.dlNumber"
                         error={errors.drivingLicenseNumber}
-                        value={newPersonnel.drivingLicenseNumber}
+                        value={newPersonnel?.drivingLicenseDetails?.dlNumber}
                         iconPosition="left"
                         icon={<FaIdCard className='text-neutral-300' />}
                         onChange={(e) => onInputChange(e)}
@@ -60,12 +60,12 @@ const DrivingLicenseTab = ({ newPersonnel, onInputChange, errors }) => {
                     <DatePicker
                         label="Driving Licence Issue Date"
                         required={true}
-                        value={newPersonnel?.dlValidity ? new Date(newPersonnel?.dlValidity) : ''}
+                        value={newPersonnel?.drivingLicenseDetails?.dlValidity ? new Date(newPersonnel?.drivingLicenseDetails?.dlValidity) : ''}
                         maxDate={new Date()}
                         error={errors.dlValidity}
                         iconPosition="left"
-                        name="dlValidity"
-                        onChange={(value) => onInputChange(null, value, "dlValidity")}
+                        name="drivingLicenseDetails.dlValidity"
+                        onChange={(value) => onInputChange(null, value, "drivingLicenseDetails.dlValidity")}
                     />
                     {errors.dlValidity && <p className='text-sm font-light text-red'>* Please provide driving license issue date</p>}
                 </div>
@@ -74,11 +74,11 @@ const DrivingLicenseTab = ({ newPersonnel, onInputChange, errors }) => {
                 <div>
                     <DatePicker
                         label="Driving Licence Test Pass Date"
-                        value={newPersonnel?.issueDrivingLicense ? new Date(newPersonnel?.issueDrivingLicense) : ''}
+                        value={newPersonnel?.drivingLicenseDetails?.dlIssue ? new Date(newPersonnel?.drivingLicenseDetails?.dlIssue) : ''}
                         maxDate={new Date()}
                         iconPosition="left"
-                        name="issueDrivingLicense"
-                        onChange={(value) => onInputChange(null, value, "issueDrivingLicense")}
+                        name="drivingLicenseDetails.dlIssue"
+                        onChange={(value) => onInputChange(null, value, "drivingLicenseDetails.dlIssue")}
                     />
                 </div>
 
@@ -88,11 +88,11 @@ const DrivingLicenseTab = ({ newPersonnel, onInputChange, errors }) => {
                         label="Driving Licence Expiry Date"
                         required={true}
                         iconPosition="left"
-                        value={newPersonnel?.dlExpiry ? new Date(newPersonnel?.dlExpiry) : ''}
+                        value={newPersonnel?.drivingLicenseDetails?.dlExpiry ? new Date(newPersonnel?.drivingLicenseDetails?.dlExpiry) : ''}
                         minDate={new Date()}
                         error={errors.dlExpiry}
-                        name="dlExpiry"
-                        onChange={(value) => onInputChange(null, value, "dlExpiry")}
+                        name="drivingLicenseDetails.dlExpiry"
+                        onChange={(value) => onInputChange(null, value, "drivingLicenseDetails.dlExpiry")}
                     />
                     {errors.dlExpiry && <p className='text-sm font-light text-red'>* Please provide driving license expiry date</p>}
                 </div>

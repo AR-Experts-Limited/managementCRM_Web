@@ -18,12 +18,12 @@ const PassportTab = ({ newPersonnel, onInputChange, errors }) => {
                 {/* Passport Issued From */}
                 <div>
                     <InputGroup type='dropdown'
-                        name='passportIssuedFrom'
                         label='Passport Issued From'
-                        className={`${newPersonnel.passportIssuedFrom === '' && 'text-gray-400'}`}
-                        value={newPersonnel.passportIssuedFrom}
+                        className={`${newPersonnel.passportDetails.issuedFrom === '' && 'text-gray-400'}`}
+                        name="passportDetails.issuedFrom"
+                        value={newPersonnel.passportDetails.issuedFrom}
                         onChange={(e) => onInputChange(e)}
-                        error={errors.passportIssuedFrom}
+                        error={errors['passportDetails.issuedFrom']}
                         iconPosition="left"
                         icon={<FaGlobe className='text-neutral-300' />}
                         required={true}>
@@ -41,12 +41,12 @@ const PassportTab = ({ newPersonnel, onInputChange, errors }) => {
                         label="Passport Number"
                         placeholder="Enter passport number"
                         type="text"
-                        name="passportNumber"
+                        name="passportDetails.passportNumber"
                         iconPosition='left'
                         icon={<GoNumber className='text-neutral-300' />}
-                        value={newPersonnel.passportNumber}
+                        value={newPersonnel.passportDetails.passportNumber}
                         onChange={(e) => onInputChange(e)}
-                        error={errors.passportNumber}
+                        error={errors['passportDetails.passportNumber']}
                         required={true}
                     />
                     {errors.passportNumber && <p className='text-sm font-light text-red'>* Please provide passport number</p>}
@@ -57,26 +57,25 @@ const PassportTab = ({ newPersonnel, onInputChange, errors }) => {
                         label="Passport Issue Date"
                         required={true}
                         iconPosition="left"
-                        value={newPersonnel?.passportValidity ? new Date(newPersonnel?.passportValidity) : ''}
+                        value={newPersonnel?.passportDetails?.passportValidity ? new Date(newPersonnel.passportDetails.passportValidity) : ''}
                         maxDate={new Date()}
-                        error={errors.passportValidity}
-                        name="passportValidity"
-                        onChange={(value) => onInputChange(null, value, "passportValidity")}
+                        error={errors['passportDetails.passportValidity']}
+                        name="passportDetails.passportValidity"
+                        onChange={(v) => onInputChange(null, v, 'passportDetails.passportValidity')}
                     />
                     {errors.passportValidity && <p className='text-sm font-light text-red'>* Please provide passport issue date</p>}
                 </div>
 
-                {console.log('checker:', newPersonnel)}
                 <div>
                     <DatePicker
                         label="Passport Expiry Date"
                         required={true}
                         iconPosition="left"
-                        value={newPersonnel?.passportExpiry ? new Date(newPersonnel?.passportExpiry) : ''}
+                        value={newPersonnel?.passportDetails?.passportExpiry ? new Date(newPersonnel.passportDetails.passportExpiry) : ''}
                         minDate={new Date()}
-                        error={errors.passportExpiry}
-                        name="passportExpiry"
-                        onChange={(value) => onInputChange(null, value, "passportExpiry")}
+                        error={errors['passportDetails.passportExpiry']}
+                        name="passportDetails.passportExpiry"
+                        onChange={(v) => onInputChange(null, v, 'passportDetails.passportExpiry')}
                     />
                     {errors.passportExpiry && <p className='text-sm font-light text-red'>* Please provide passport expiry date</p>}
                 </div>

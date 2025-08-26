@@ -13,24 +13,24 @@ const ECSTab = ({ newPersonnel, onInputChange, errors }) => {
                     <InputGroup
                         type='toggleswitch'
                         label='ECS Information'
-                        name="ecsInformation"
-                        checked={newPersonnel.ecsInformation}
+                        name="ecsDetails.active"
+                        checked={newPersonnel?.ecsDetails?.active}
                         onChange={(e) => onInputChange(e)}
                     />
                 </div>
 
-                {newPersonnel.ecsInformation && (
+                {newPersonnel?.ecsDetails?.active && (
                     <>
                         <div>
                             <DatePicker
                                 label="ECS Issue Date"
                                 required={true}
                                 iconPosition="left"
-                                value={newPersonnel?.ecsValidity ? new Date(newPersonnel?.ecsValidity) : ''}
+                                value={newPersonnel?.ecsDetails?.ecsIssue ? new Date(newPersonnel.ecsDetails.ecsIssue) : ''}
                                 maxDate={new Date()}
-                                error={errors.ecsValidity}
-                                name="ecsValidity"
-                                onChange={(value) => onInputChange(null, value, "ecsValidity")}
+                                error={errors['ecsDetails.ecsIssue']}
+                                name="ecsDetails.ecsIssue"
+                                onChange={(v) => onInputChange(null, v, 'ecsDetails.ecsIssue')}
                             />
                             {errors.ecsValidity && <p className='text-sm font-light text-red'>* Please provide ECS issue date</p>}
                         </div>
@@ -40,11 +40,11 @@ const ECSTab = ({ newPersonnel, onInputChange, errors }) => {
                                 label="ECS Expiry Date"
                                 required={true}
                                 iconPosition="left"
-                                value={newPersonnel?.ecsExpiry ? new Date(newPersonnel?.ecsExpiry) : ''}
+                                value={newPersonnel?.ecsDetails?.ecsExpiry ? new Date(newPersonnel.ecsDetails.ecsExpiry) : ''}
                                 minDate={new Date()}
-                                error={errors.ecsExpiry}
-                                name="ecsExpiry"
-                                onChange={(value) => onInputChange(null, value, "ecsExpiry")}
+                                error={errors['ecsDetails.ecsExpiry']}
+                                name="ecsDetails.ecsExpiry"
+                                onChange={(v) => onInputChange(null, v, 'ecsDetails.ecsExpiry')}
                             />
                             {errors.ecsExpiry && <p className='text-sm font-light text-red'>* Please provide ECS expiry date</p>}
                         </div>

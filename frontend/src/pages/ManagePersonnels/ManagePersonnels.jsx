@@ -4,6 +4,7 @@ import { fetchPersonnels, deletePersonnel, disablePersonnel } from '../../featur
 import { useSelector, useDispatch } from 'react-redux';
 import PersonnelForm from './PersonnelForm/PersonnelForm';
 import { fetchSites } from '../../features/sites/siteSlice';
+import { fetchRoles } from '../../features/roles/roleSlice';
 import TableFeatures from '../../components/TableFeatures/TableFeatures';
 import { useCallback } from 'react';
 import Spinner from '../../components/UIElements/Spinner';
@@ -14,6 +15,7 @@ const ManagePersonnels = () => {
 
     const dispatch = useDispatch();
     const clearPersonnel = {
+        // top-level
         firstName: '',
         lastName: '',
         address: '',
@@ -22,22 +24,28 @@ const ManagePersonnels = () => {
         nationalInsuranceNumber: '',
         dateOfBirth: '',
         nationality: '',
-        siteSelection: '',
+        siteSelection: [],
         email: '',
         phone: '',
-        bankDetails: {},
-        drivingLicenseDetails: {},
-        passportDetails: {},
-        rightToWorkDetails: {}
+        role: '',
+
+        // nested objects (complete shapes)
+        vatDetails: { vatNo: '', vatEffectiveDate: '' },
+        bankDetails: { bankName: '', sortCode: '', accNo: '', accName: '' },
+        drivingLicenseDetails: { dlNumber: '', dlValidity: '', dlIssue: '', dlExpiry: '' },
+        passportDetails: { issuedFrom: '', passportNumber: '', passportValidity: '', passportExpiry: '' },
+        rightToWorkDetails: { rightToWorkValidity: '', rightToWorkExpiry: '' },
+        ecsDetails: { active: false, ecsIssue: '', ecsExpiry: '' },
     };
 
     const [newPersonnel, setNewPersonnel] = useState(clearPersonnel);
     const { personnelStatus } = useSelector((state) => state.personnels);
     const { list: sites, siteStatus } = useSelector((state) => state.sites)
+    const { list: roles, roleStatus } = useSelector((state) => state.roles);
     const { byRole: personnelsByRole, error } = useSelector((state) => state.personnels);
     const { userDetails } = useSelector((state) => state.auth);
     const [personnelsList, setPersonnelsList] = useState(Object.values(personnelsByRole).flat())
-    const colList = { 'First Name': 'firstName', 'Last Name': 'lastName', 'Site': 'siteSelection' }
+    const colList = { 'First Name': 'firstName', 'Last Name': 'lastName', 'Site': 'siteSelection', 'Role': 'role' }
     const [columns, setColumns] = useState(colList)
     const [toastOpen, setToastOpen] = useState(null)
     const [processing, setProcessing] = useState(false)
@@ -50,7 +58,8 @@ const ManagePersonnels = () => {
     useEffect(() => {
         if (personnelStatus === 'idle') dispatch(fetchPersonnels());
         if (siteStatus === 'idle') dispatch(fetchSites())
-    }, [personnelStatus, siteStatus, dispatch]);
+        if (roleStatus === 'idle') dispatch(fetchRoles());
+    }, [personnelStatus, siteStatus, roleStatus, dispatch]);
 
     const handleEditPersonnel = (personnel) => {
         setNewPersonnel({
@@ -136,6 +145,7 @@ const ManagePersonnels = () => {
                         personnelMode={personnelMode}
                         setPersonnelMode={setPersonnelMode}
                         sites={sites}
+                        roles={roles}
                         setToastOpen={setToastOpen}
                         setProcessing={setProcessing}
                         personnelsList={personnelsList}

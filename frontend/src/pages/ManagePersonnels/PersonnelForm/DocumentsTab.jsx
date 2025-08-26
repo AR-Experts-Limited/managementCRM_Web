@@ -3,7 +3,7 @@ import InputGroup from '../../../components/InputGroup/InputGroup';
 import { FaEye } from "react-icons/fa";
 import { handleFileView } from '../supportFunctions'
 
-const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
+const DocumentsTab = ({ newPersonnel, onInputChange, errors }) => {
     return (
         <div className='p-6'>
             <h1 className='text-center font-bold'>Documents</h1>
@@ -17,7 +17,7 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                         name="profilePicture"
                         onChange={(e) => onInputChange(e)}
                     />
-                    {newDriver.profilePictureArray?.length > 0 &&
+                    {newPersonnel.profilePictureArray?.length > 0 &&
                         <div className='col-span-3 mt-2 rounded-md max-h-60 w-full border-2 border-neutral-200'>
                             <table className='table-general'>
                                 <thead className='sticky top-0 bg-white'>
@@ -33,10 +33,10 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {[...(newDriver.profilePictureArray || [])]
+                                    {[...(newPersonnel.profilePictureArray || [])]
                                         .sort((a, b) => (new Date(b.timestamp) - new Date(a.timestamp))).map((doc, index) => (
                                             <tr>
-                                                <td>{newDriver.profilePictureArray.length - index}</td>
+                                                <td>{newPersonnel.profilePictureArray.length - index}</td>
                                                 <td>
                                                     <div className='flex justify-around'>
                                                         <div onClick={() => handleFileView(doc.original)}
@@ -59,7 +59,7 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                         name="ninoDocument"
                         onChange={(e) => onInputChange(e)}
                     />
-                    {newDriver.ninoDocumentArray?.length > 0 &&
+                    {newPersonnel.ninoDocumentArray?.length > 0 &&
                         <div className='col-span-3 mt-2 rounded-md max-h-60 w-full border-2 border-neutral-200'>
                             <table className='table-general'>
                                 <thead className='sticky top-0 bg-white'>
@@ -75,10 +75,10 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(newDriver.ninoDocumentArray || [])
+                                    {(newPersonnel.ninoDocumentArray || [])
                                         .sort((a, b) => (new Date(b.timestamp) - new Date(a.timestamp))).map((doc, index) => (
                                             <tr>
-                                                <td>{newDriver.ninoDocumentArray.length - index}</td>
+                                                <td>{newPersonnel.ninoDocumentArray.length - index}</td>
                                                 <td>
                                                     <div className='flex justify-around'>
                                                         <div onClick={() => handleFileView(doc.original)}
@@ -100,7 +100,7 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                         name="signature"
                         onChange={(e) => onInputChange(e)}
                     />
-                    {newDriver.signatureArray?.length > 0 &&
+                    {newPersonnel.signatureArray?.length > 0 &&
                         <div className='col-span-3 mt-2 rounded-md max-h-60 w-full border-2 border-neutral-200'>
                             <table className='table-general'>
                                 <thead className='sticky top-0 bg-white'>
@@ -116,10 +116,10 @@ const DocumentsTab = ({ newDriver, onInputChange, errors }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(newDriver.signatureArray || [])
+                                    {(newPersonnel.signatureArray || [])
                                         .sort((a, b) => (new Date(b.timestamp) - new Date(a.timestamp))).map((doc, index) => (
                                             <tr>
-                                                <td>{newDriver.signatureArray.length - index}</td>
+                                                <td>{newPersonnel.signatureArray.length - index}</td>
                                                 <td>
                                                     <div className='flex justify-around'>
                                                         <div onClick={() => handleFileView(doc.original)}
