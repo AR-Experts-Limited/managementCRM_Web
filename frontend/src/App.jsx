@@ -19,6 +19,7 @@ import Sidebar from './components/Sidebar/Sidebar';
 import Navbar from './components/Navbar/Navbar';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import ManagePersonnels from './pages/ManagePersonnels/ManagePersonnels';
+import Notifications from './pages/Notifications/Notifications';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -45,7 +46,7 @@ function App() {
   //  { path: "/rate-card", name: "Rate Cards", component: Ratecard },
   //  { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
     { path: "/manage-personnels", name: "Manage Personnels", component: ManagePersonnels },
-  //  { path: "/notifications", name: "Notifications", component: Notifications },
+    { path: "/notifications", name: "Notifications", component: Notifications },
   //  { path: "/approvals", name: "Approvals", component: Approvals },
   //  { path: "/live-operations", name: "Live Operations", component: LiveOperations },
   //  { path: "/rota", name: "Rota", component: Rota },
@@ -77,18 +78,18 @@ function App() {
   };
 
   return (
-    <div className="app fixed bg-stone-100 dark:bg-dark-4 w-screen h-screen flex flex-col">
+    <div className="app fixed bg-stone-100 dark:bg-dark-3 w-screen h-screen flex flex-col">
       {!hideLayout && <Navbar sidebarIsOpen={sidebarIsOpen} setSidebarIsOpen={setSidebarIsOpen} />}
 
       <div className="flex flex-1 overflow-hidden">
         {!hideLayout && (<>
-          <div className={`transition-all duration-300 ${sidebarIsOpen ? 'w-45 md:w-60' : 'w-0 md:w-18'}`}>
+          <div className={`transition-all duration-300 ${sidebarIsOpen ? 'w-22.5 md:w-60' : 'w-0 md:w-22.5'}`}>
             <Sidebar sidebarIsOpen={sidebarIsOpen} setSidebarIsOpen={setSidebarIsOpen} />
           </div>
           <div
             className='h-full absolute top-0 left-0 w-0.5'
-            onMouseEnter={handleMouseEnterOpener}
-            onMouseLeave={handleMouseLeaveOpener}
+            // onMouseEnter={handleMouseEnterOpener}
+            // onMouseLeave={handleMouseLeaveOpener}
           >
           </div>
           {userDetails?.role === 'OSM' && <OverdueShiftBubble userSite={userDetails?.site} />}
