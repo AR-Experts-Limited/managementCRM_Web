@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../features/auth/authSlice';
+import flatpickr from "flatpickr";
+import "flatpickr/dist/flatpickr.min.css";
 
 import { IoChevronDown } from "react-icons/io5";
 import { PiBell } from "react-icons/pi";
@@ -21,7 +23,9 @@ import { BiLineChart } from "react-icons/bi";
 import { IoChevronForward } from "react-icons/io5";
 import { BiStation } from "react-icons/bi";
 import { FaCalendarDays } from "react-icons/fa6";
-
+import NotificationPanel from "../NotificationPanel/NotificationPanel";
+import axios from 'axios'
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const menuItems = [
     { path: "/dashboard", name: "Dashboard", icon: <TbLayoutDashboard size={20} /> },
@@ -41,70 +45,156 @@ const menuItems = [
     { path: "/profit-loss", name: "Profit / Loss", icon: <BiLineChart size={20} /> },
 ];
 
-
-
-
 const Navbar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
-    const [userOptionsOpen, setUserOptionsOpen] = useState(false)
-    const navigate = useNavigate()
-    const dispatch = useDispatch()
+    const [userOptionsOpen, setUserOptionsOpen] = useState(false);
+    const [notification, setNotification] = useState([]);
+    const [notificationOpen, setNotificationOpen] = useState(false);
+    const [calendarOpen, setCalendarOpen] = useState(false);
+    const { events, connected } = useSelector((state) => state.sse);
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
     const { userDetails } = useSelector((state) => state.auth);
+    const calendarRef = useRef(null);
+    const flatpickrInstance = useRef(null);
+
+    const fetchNotifications = async () => {
+        const url = userDetails?.site
+            ? `${API_BASE_URL}/api/notifications/${userDetails.site}`
+            : `${API_BASE_URL}/api/notifications/`;
+
+        const notifications = await axios.get(url);
+        const filteredNotifications = notifications.data.filter(item => {
+            const notification = item.notification;
+            return !notification.hasOwnProperty('excludeRoles') ||
+                (Array.isArray(notification.excludeRoles)
+                    ? !notification.excludeRoles.includes(userDetails.role)
+                    : notification.excludeRoles !== userDetails.role);
+        });
+        setNotification(filteredNotifications);
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+        if (events && (events.type === "notificationUpdated" || events.type === "approvalStatusUpdated")) {
+            console.log("notification added! Refetching...");
+            fetchNotifications();
+        }
+    }, [events]);
+
+    useEffect(() => {
+        if (calendarOpen && calendarRef.current && !flatpickrInstance.current) {
+            flatpickrInstance.current = flatpickr(calendarRef.current, {
+                inline: true,
+                disableMobile: true,
+                weekNumbers: true,
+                onReady: () => {
+                    const days = document.querySelectorAll(".flatpickr-day");
+                    days.forEach((day) => (day.style.pointerEvents = "none"));
+                }
+            });
+        }
+
+        // Cleanup on unmount
+        return () => {
+            if (flatpickrInstance.current) {
+                flatpickrInstance.current.destroy();
+                flatpickrInstance.current = null;
+            }
+        };
+    }, [calendarOpen]);
+
 
     return (
         <div className="navbar z-500 p-2 md:p-5 flex items-center justify-between h-18 bg-neutral-50 w-screen border-b border-stone-400/40 dark:bg-dark dark:text-white">
-            <div className="flex-1 "><button className={` ${sidebarIsOpen === 2 ? 'bg-neutral-200 text-white' : ''} rounded-lg p-2 hover:bg-neutral-200 hover:text-white`}
-                onClick={() => setSidebarIsOpen(prev => (prev === 2 ? 0 : 2))} >
-                <IoChevronForward
-                    className={`transform transition duration-500 ${sidebarIsOpen ? 'rotate-180' : ''}`}
-                    size={20}
-                /></button></div>
+            <div className="flex-1 visible md:invisible">
+                <button
+                    className={` ${sidebarIsOpen === 2 ? 'bg-neutral-200 text-white' : ''} rounded-lg p-2 hover:bg-neutral-200 hover:text-white`}
+                    onClick={() => setSidebarIsOpen(prev => (prev === 2 ? 0 : 2))}
+                >
+                    <IoChevronForward
+                        className={`transform transition duration-500 ${sidebarIsOpen ? 'rotate-180' : ''}`}
+                        size={20}
+                    />
+                </button>
+            </div>
             <div className="justify-self-start">
                 <img className="h-45 w-45" src="/bizalign.png" />
             </div>
 
             <div className="relative flex-1 flex gap-1 md:gap-3 items-center justify-end">
-                <div className="text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4">
-                    <i class="flex items-center fi fi-rr-calendar hover:text-primary-800 text-[1rem]"></i>
-                </div>
-                <div className="text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4">
+
+                <button className='relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4' onClick={() => setCalendarOpen(prev => !prev)}>
+                    <i className=" flex items-center fi fi-rr-calendar hover:text-primary-800 text-[1rem]"></i>
+                    <div onClick={(e) => e.stopPropagation()} className={`absolute top-12 right-2 rounded-lg border border-neutral-300 shadow-md transition-all duration-300 origin-top-right transform ${calendarOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} >
+                        <div ref={calendarRef}></div>
+                    </div>
+                </button>
+
+
+                <button
+                    onClick={() => setNotificationOpen(prev => !prev)}
+                    className="relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4"
+                >
                     <i className="flex items-center fi fi-rr-bell hover:text-primary-800 text-[1rem]"></i>
-                </div>
+                    <div className={`absolute top-12 bg-white/10 backdrop-blur-md right-2 rounded-lg border border-neutral-300 shadow-md transition-all duration-300 origin-top-right transform ${notificationOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
+                        <NotificationPanel notifications={notification} setNotifications={setNotification} />
+                    </div>
+                    {notification.length > 0 && <div className={`flex items-center justify-center absolute -top-1 -right-1 bg-red-600/85 h-5  rounded-full text-white ${notification.length < 100 ? 'text-[0.7rem] w-5' : 'text-[0.6rem] p-1'}  font-semibold shadow-xl`}>
+                        {notification.length < 100 ? notification.length : '99+'}
+                    </div>}
+                </button>
                 <div className="text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex justify-center items-center rounded-full bg-black text-white">
-                    SR
+                    {userDetails?.userName.split(' ')[0].slice(0, 1).toUpperCase() + userDetails?.userName.split(' ')[1].slice(0, 1).toUpperCase()}
                 </div>
 
                 <div className="flex flex-col md:gap-1 group">
                     <p className="text-xs hidden md:block">{userDetails?.userName}</p>
                     <div className="flex gap-1 items-center justify-between">
                         <span className="hidden md:block text-xs bg-primary-500 text-white rounded-md px-1.5 py-0.5">{userDetails?.role}</span>
-                        <button onClick={() => setUserOptionsOpen(prev => !prev)} className={`rounded-md p-1 hover:bg-neutral-200 hover:text-white`}>
-                            <IoChevronDown className={`transform transition duration-500 ${userOptionsOpen ? 'rotate-180 ' : ''}`} size={15} />
+                        <button
+                            onClick={() => setUserOptionsOpen(prev => !prev)}
+                            className={`rounded-md p-1 hover:bg-neutral-200 hover:text-white`}
+                        >
+                            <IoChevronDown
+                                className={`transform transition duration-500 ${userOptionsOpen ? 'rotate-180 ' : ''}`}
+                                size={15}
+                            />
                         </button>
                     </div>
 
-                    <div id="userOptions" className={` flex flex-col absolute top-9 md:top-12 right-0 bg-white/80 shadow-lg backdrop-blur-sm rounded-lg border-2 border-neutral-200 transition-all duration-300 origin-top-right transform ${userOptionsOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
-                        <div className="flex flex-col p-1 md:p-2 ">
-                            {/* <button onClick={() => navigate('/my-profile')} className={`hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex  items-center gap-2`}>
-                                <FiUsers size={15} /> View Profile
-                            </button> */}
-                            <button onClick={() => navigate('/update-password')} className={`hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex  items-center gap-2`}>
+                    <div
+                        id="userOptions"
+                        className={`flex flex-col absolute top-9 md:top-12 right-0 bg-white/80 dark:bg-dark-5/80 dark:border-dark-6 shadow-lg backdrop-blur-sm rounded-lg border-2 border-neutral-200 transition-all duration-300 origin-top-right transform ${userOptionsOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}
+                    >
+                        <div className="flex flex-col p-1 md:p-2">
+                            <button
+                                onClick={() => navigate('/update-password')}
+                                className={`hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex items-center gap-2`}
+                            >
                                 <FiLock size={15} /> Update Password
                             </button>
-                            <button onClick={() => navigate('/settings')} className={`hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex  items-center gap-2`}>
+                            <button
+                                onClick={() => navigate('/settings')}
+                                className={`hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex items-center gap-2`}
+                            >
                                 <FiSettings size={15} /> Account Settings
                             </button>
                         </div>
                         <div className="p-1 md:p-2 border-t border-neutral-300">
-                            <button onClick={() => {
-                                dispatch(logout()); navigate('/login');
-                            }} className={`hover:text-red-500 hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex  items-center gap-2`}>
+                            <button
+                                onClick={() => {
+                                    dispatch(logout());
+                                    navigate('/login');
+                                }}
+                                className={`hover:text-red-500 hover:bg-zinc-300/70 rounded-md p-2 text-xs md:text-sm w-full flex items-center gap-2`}
+                            >
                                 <FiLogOut size={15} /> Log out
                             </button>
                         </div>
                     </div>
                 </div>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 };
 

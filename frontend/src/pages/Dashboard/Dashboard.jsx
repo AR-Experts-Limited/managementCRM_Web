@@ -83,8 +83,6 @@ const Dashboard = () => {
                 return sum;
             }, {...totalExpenses});
 
-
-            console.log("Total expenses = ", totalExpenses);
             setTotalExp(totalExpenses);
 
         }

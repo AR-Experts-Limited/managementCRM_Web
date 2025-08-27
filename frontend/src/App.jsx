@@ -21,6 +21,9 @@ import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import ManagePersonnels from './pages/ManagePersonnels/ManagePersonnels';
 import Notifications from './pages/Notifications/Notifications';
 import Dashboard from './pages/Dashboard/Dashboard';
+import WorkingHours from './pages/WorkingHours/WorkingHours';
+import DailyInvoice from './pages/Invoice/DailyInvoice/DailyInvoice';
+import WeeklyInvoice from './pages/Invoice/WeeklyInvoice/WeeklyInvoice';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -44,21 +47,17 @@ function App() {
 
   const routes = [
     { path: "/dashboard", name: "Dashboard", component: Dashboard },
-  //  { path: "/rate-card", name: "Rate Cards", component: Ratecard },
   //  { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
     { path: "/manage-personnels", name: "Manage Personnels", component: ManagePersonnels },
     { path: "/notifications", name: "Notifications", component: Notifications },
-  //  { path: "/approvals", name: "Approvals", component: Approvals },
   //  { path: "/live-operations", name: "Live Operations", component: LiveOperations },
-  //  { path: "/rota", name: "Rota", component: Rota },
     { path: "/deductions", name: "Deductions", component: Deductions },
     { path: "/incentives", name: "Incentives", component: Incentives },
-  //  { path: "/manage-summary", name: "Manage Summary", component: ManageSummary },
-  //  { path: "/manage-payments", name: "Manage Payments", component: DailyInvoice },
+    { path: "/manage-payments", name: "Manage Payments", component: DailyInvoice },
     { path: "/add-ons", name: "Additional Charges", component: AdditionalCharges },
-  //  { path: "/print-invoices", name: "Print Invoices", component: WeeklyInvoice },
+    { path: "/print-invoices", name: "Print Invoices", component: WeeklyInvoice },
   //  { path: "/profit-loss", name: "Profit / Loss", component: ProfitLoss },
-  //  { path: "/working-hours", name: "Working Hours", component: WorkingHours },
+    { path: "/working-hours", name: "Working Hours", component: WorkingHours },
   //  { path: "/manage-users", name: "Manage Users", component: ManageUsers },
   //  { path: "/settings", name: "Application Settings", component: ApplicationSettings },
   ];
