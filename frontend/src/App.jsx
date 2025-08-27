@@ -20,6 +20,7 @@ import Navbar from './components/Navbar/Navbar';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import ManagePersonnels from './pages/ManagePersonnels/ManagePersonnels';
 import Notifications from './pages/Notifications/Notifications';
+import Dashboard from './pages/Dashboard/Dashboard';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -42,7 +43,7 @@ function App() {
   }, [dispatch]);
 
   const routes = [
-  //  { path: "/dashboard", name: "Dashboard", component: Dashboard },
+    { path: "/dashboard", name: "Dashboard", component: Dashboard },
   //  { path: "/rate-card", name: "Rate Cards", component: Ratecard },
   //  { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
     { path: "/manage-personnels", name: "Manage Personnels", component: ManagePersonnels },

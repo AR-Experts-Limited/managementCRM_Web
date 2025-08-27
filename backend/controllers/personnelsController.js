@@ -419,7 +419,8 @@ const newUpdate = async (req, res) => {
     activeStatus: personnelData.activeStatus,
     expiredReasons: personnelData.expiredReasons,
     addedBy: personnelData.addedBy,
-    siteSelection: personnelData.siteSelection
+    siteSelection: personnelData.siteSelection,
+    dailyRate: personnelData.dailyRate,
   };
 
   // Handle file uploads

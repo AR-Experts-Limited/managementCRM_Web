@@ -28,6 +28,7 @@ const ManagePersonnels = () => {
         email: '',
         phone: '',
         role: '',
+        dailyRate: '',
 
         // nested objects (complete shapes)
         vatDetails: { vatNo: '', vatEffectiveDate: '' },
@@ -45,7 +46,7 @@ const ManagePersonnels = () => {
     const { byRole: personnelsByRole, error } = useSelector((state) => state.personnels);
     const { userDetails } = useSelector((state) => state.auth);
     const [personnelsList, setPersonnelsList] = useState(Object.values(personnelsByRole).flat())
-    const colList = { 'First Name': 'firstName', 'Last Name': 'lastName', 'Site': 'siteSelection', 'Role': 'role' }
+    const colList = { 'First Name': 'firstName', 'Last Name': 'lastName', 'Site': 'siteSelection', 'Role': 'role', 'Daily Rate (£)': 'dailyRate' }
     const [columns, setColumns] = useState(colList)
     const [toastOpen, setToastOpen] = useState(null)
     const [processing, setProcessing] = useState(false)
@@ -81,6 +82,7 @@ const ManagePersonnels = () => {
             profilePictureArray: personnel.profilePicture,
             signature: '',
             signatureArray: personnel.signature,
+            dailyRate: personnel.dailyRate?.toFixed(2),
         })
         setPersonnelMode('edit')
     }

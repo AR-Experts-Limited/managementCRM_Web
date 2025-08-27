@@ -248,6 +248,22 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                     <p className={`${errors.siteSelection ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
                 </div>}
 
+                {/* Daily Rate */}
+                <div>
+                    <InputGroup
+                        label="Daily Rate (£)"
+                        placeholder="Enter Daily Rate value"
+                        type="number"
+                        name="dailyRate"
+                        iconPosition='left'
+                        icon={<GoNumber className='text-neutral-300' />}
+                        value={newPersonnel.dailyRate}
+                        onChange={(e) => onInputChange(e)}
+                        error={errors.dailyRate}
+                    />
+                    <p className={`${errors.dailyRate ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide a daily rate value</p>
+                </div>
+
                 {/* UTR No. */}
                 <div>
                     <InputGroup
