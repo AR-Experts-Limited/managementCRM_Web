@@ -32,6 +32,7 @@ function App() {
   const dispatch = useDispatch();
   const [sidebarIsOpen, setSidebarIsOpen] = useState(0);
   const { userDetails } = useSelector((state) => state.auth);
+  const location = useLocation();
   const hideLayout = location.pathname === '/login' || location.pathname === '/';
   //const personnelsLoading = useSelector((state) => state.personnels.personnelStatus);
   const sitesLoading = useSelector((state) => state.sites.siteStatus);
@@ -102,6 +103,7 @@ function App() {
             ? <div className='h-full w-full flex justify-center items-center '><img className='w-50 h-30' src="/bizalign_loading_loop.gif" /></div> // You can show a spinner here
 
             : (<Routes>
+              <Route path="/" element={<Login />} /> {/* Temporarily placed Login in place of Landing Page */}
               <Route path="/login" element={<Login />} />
               {routes.map(({ path, name, component: Component }) => (
                 <Route
