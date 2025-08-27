@@ -16,7 +16,7 @@ const LiveOperations = () => {
     const [rangeType, setRangeType] = useState('weekly');
     const [rangeOptions, setRangeOptions] = useState({});
     const [selectedRangeIndex, setSelectedRangeIndex] = useState();
-    const [selectedSite, setSelectedSite] = useState('');
+    const [selectedRole, setSelectedRole] = useState('');
     const [personnelsList, setPersonnelsList] = useState([]);
     const [searchPersonnel, setSearchPersonnel] = useState('');
     const [days, setDays] = useState([]);
@@ -25,54 +25,25 @@ const LiveOperations = () => {
     const [cacheRangeOption, setCacheRangeOption] = useState(null);
     const [prevRangeType, setPrevRangeType] = useState(rangeType);
     const [loading, setLoading] = useState(false)
-
+    const personnelsByRole = useSelector((state) => state.personnels.byRole || {});
     const [currentShiftDetails, setCurrentShiftDetails] = useState(null)
 
-    const state = { rangeType, rangeOptions, selectedRangeIndex, days, selectedSite, searchPersonnel, personnelsList };
-    const setters = { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedSite, setSearchPersonnel, setPersonnelsList };
+    const state = { rangeType, rangeOptions, selectedRangeIndex, days, selectedRole, searchPersonnel, personnelsList };
+    const setters = { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedRole, setSearchPersonnel, setPersonnelsList };
 
+    useEffect(() => {
+      const hasData = personnelsByRole && Object.keys(personnelsByRole).length > 0;
+      if (!hasData) {
+        return;
+      }
 
-    const getPersonnelSiteForDate = (personnel, date) => {
-        const traces = personnel?.siteTrace || [];
-        if (traces.length === 0) {
-            return personnel?.siteSelection;
-        }
+      const list = selectedRole === ''
+        ? Object.values(personnelsByRole).flat()
+        : (personnelsByRole[selectedRole] || []);
 
-        const targetDate = new Date(date)
-        // Sort traces by timestamp
-        const sortedTraces = traces
-            .slice()
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        let latestSite = null;
-
-        for (const trace of sortedTraces) {
-            const changeDate = new Date(trace.timestamp);
-            if (changeDate <= targetDate) {
-                if (
-                    !latestSite ||
-                    changeDate > new Date(latestSite.timestamp)
-                ) {
-                    latestSite = trace;
-                }
-            }
-        }
-
-        if (latestSite) {
-            return latestSite.to;
-        }
-
-        // If no change has occurred yet, return the 'from' type of the first trace
-        const firstTrace = sortedTraces
-            .slice()
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
-
-        if (targetDate < new Date(firstTrace.timestamp)) {
-            return firstTrace.from;
-        }
-
-        return personnel?.siteSelection;
-    };
+      // keep excluding disabled; remove the filter if you truly want zero filtering
+      setPersonnelsList(list.filter(p => !p.disabled));
+    }, [personnelsByRole, selectedRole]);
 
     //const { streaks, continuousStatus } = useMemo(() => {
     //    if (personnelsList.length === 0 || schedules.length === 0) {
@@ -104,7 +75,7 @@ const LiveOperations = () => {
 
             try {
                 const rangeOptionsVal = Object.values(rangeOptions);
-                const response = await axios.get(`${API_BASE_URL}/api/schedule/combined`, {
+                const response = await axios.get(`${API_BASE_URL}/api/live-ops`, {
                     params: {
                         personnelId: personnelsList.map((personnel) => personnel._id),
                         startDay: new Date(moment(rangeOptionsVal[0]?.start).format('YYYY-MM-DD')),
@@ -113,7 +84,46 @@ const LiveOperations = () => {
                 });
 
                 clearTimeout(loadingTimeout);
-                setSchedules(response.data);
+                const raw = Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
+
+                const unwrapDate = (d) => (d && typeof d === 'object' && '$date' in d ? d.$date : d);
+
+                const shaped = raw.map((d) => {
+                    // support both snake_case and prior camelCase
+                    const personnelId =
+                        String(d.personnelId ?? d.personnel_id ?? d.personnelId?._id ?? d.person?._id ?? '');
+
+                    const day = new Date(unwrapDate(d.day ?? d.date));
+
+                    const startTrip = d.start_trip_checklist ?? d.startShiftChecklist ?? {};
+                    const endTrip   = d.end_trip_checklist   ?? d.endShiftChecklist   ?? {};
+
+                    const appData = {
+                        ...d,
+                        // normalize checklist blocks to what the UI already uses
+                        startShiftChecklist: d.startShiftChecklist ?? {
+                            startShiftTimestamp: unwrapDate(startTrip.time_and_date),
+                            location: startTrip.location,
+                            signed: startTrip.signed,
+                            signature: startTrip.signature,
+                            miles: startTrip.miles,
+                        },
+                        endShiftChecklist: d.endShiftChecklist ?? {
+                            endShiftTimestamp: unwrapDate(endTrip.time_and_date),
+                            location: endTrip.location,
+                            signed: endTrip.signed,
+                            signature: endTrip.signature,
+                            miles: endTrip.miles,
+                            oneHourBreak: endTrip.one_hour_break,
+                        },
+                        user_ID: d.user_ID ?? d.userId,
+                        tripStatus: d.tripStatus ?? d.trip_status,
+                    };
+
+                    return { day, personnelId, appData, schedule: null };
+                });
+
+                setSchedules(shaped);
                 setCacheRangeOption(rangeOptions);
             } catch (error) {
                 clearTimeout(loadingTimeout);
@@ -171,7 +181,7 @@ const LiveOperations = () => {
         //const streak = streaks[personnel._id]?.[dateKey] || 0;
         //const continuousSchedule = continuousStatus[personnel._id]?.[dateKey] || "3";
 
-        const scheduleBelongtoSite = schedule?.site === selectedSite;
+        //const scheduleBelongtoSite = schedule?.site === selectedSite;
         const siteRestriction = personnel?.siteChanges?.some(change =>
             moment(change.changeDate, 'DD/MM/YYYY').isSameOrBefore(moment(day?.date), 'day') || moment(change.changeDate, 'DD/MM/YYYY').isSameOrAfter(moment(day?.date), 'day')
         ) || false;
@@ -182,15 +192,15 @@ const LiveOperations = () => {
             return 'border-l-red-400';
         };
 
-        const renderPlaceholder = () => (
-            <div className="w-full h-full flex items-center justify-center text-stone-400">
-                <div className="flex justify-center items-center w-full h-full rounded-md border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]" >
-                    {(siteRestriction && getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) && <div className="w-fit text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
-                        {getPersonnelSiteForDate(personnel, new Date(day.date))}
-                    </div>}
-                </div>
-            </div>
-        );
+        //const renderPlaceholder = () => (
+        //    <div className="w-full h-full flex items-center justify-center text-stone-400">
+        //        <div className="flex justify-center items-center w-full h-full rounded-md border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]" >
+        //            {(siteRestriction && getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) && <div className="w-fit text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
+        //                {getPersonnelSiteForDate(personnel, new Date(day.date))}
+        //            </div>}
+        //        </div>
+        //    </div>
+        //);
 
         const renderStandbyCell = () => (
             <div className="relative flex justify-center h-full w-full">
@@ -249,39 +259,48 @@ const LiveOperations = () => {
                     if (schedule) {
                         return renderScheduleBox({ schedule, scheduleBelongtoSite, streak });
                     }
-
-                    if (siteRestriction && getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) {
-                        return renderPlaceholder();
-                    }
-
-                    if (Object.keys(scheduleMap).length > 0 && standbySchedule && !schedule) {
-                        return renderStandbyCell();
-                    }
-
-                    if (schedule && schedule.service === 'Voluntary-Day-off') {
+                
+                    // NEW: render when we only have AppData
+                    if (appData) {
+                        const hasEnded = Boolean(appData?.endShiftChecklist?.endShiftTimestamp);
                         return (
                             <div className="relative flex justify-center h-full w-full">
-                                <div className="relative max-w-40">
-                                    <div className="relative z-6 w-full h-full flex gap-1 items-center justify-center overflow-auto dark:bg-dark-4 dark:text-white bg-gray-50 border border-gray-200 dark:border-dark-5 rounded-md text-sm p-2 px-4 transition-all duration-300 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
-                                        <div className="overflow-auto max-h-[4rem]">{schedule.service}</div>
+                                <div className="relative w-40 max-w-40">
+                                    <div
+                                        onClick={() => setCurrentShiftDetails({ ...appData, day: day.date })}
+                                        className="cursor-pointer relative z-6 w-full h-full flex gap-1 items-center justify-center overflow-auto dark:bg-dark-4 dark:text-white bg-gray-100 border border-gray-200 dark:border-dark-5 rounded-md text-sm p-2"
+                                    >
+                                        <div className="overflow-auto max-h-[6rem]">
+                                            {new Date(day.date).toLocaleDateString('en-UK')}
+                                        </div>
+                                        <div className="h-7 w-7 flex justify-center items-center bg-white border border-stone-200 shadow-sm rounded-full p-1">
+                                            {hasEnded ? (
+                                                <FcApproval size={20} />
+                                            ) : (
+                                                <svg className="w-6 h-6" viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg">
+                                                    <polyline
+                                                        points="0,25 20,25 30,05 40,40 50,10 60,25 100,25"
+                                                        className="ecg-path stroke-orange-500 stroke-[7] fill-none"
+                                                    />
+                                                </svg>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         );
                     }
-                    if (schedule) {
-                        return renderScheduleBox({ schedule, scheduleBelongtoSite, streak });
-                    }
-                    if (continuousSchedule < 3) {
-                        const label = continuousSchedule === "1" ? 'Unavailable' : 'Day-off';
-                        return (
-                            <div className="flex justify-center items-center w-full h-full rounded-lg border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
-                                <div className="text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
-                                    {label}
-                                </div>
-                            </div>
-                        );
-                    }
+
+                    //if (continuousSchedule < 3) {
+                    //    const label = continuousSchedule === "1" ? 'Unavailable' : 'Day-off';
+                    //    return (
+                    //        <div className="flex justify-center items-center w-full h-full rounded-lg border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
+                    //            <div className="text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
+                    //                {label}
+                    //            </div>
+                    //        </div>
+                    //    );
+                    //}
                     return null;
                 })()}
             </div >
