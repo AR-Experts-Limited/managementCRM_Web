@@ -88,7 +88,7 @@ const LiveOperations = () => {
     const prevPersonnelsList = useRef(personnelsList);
 
     useEffect(() => {
-        const fetchSchedules = async () => {
+        const fetchAppDatas = async () => {
             if (personnelsList.length === 0 || !rangeOptions) return;
 
             let loadingTimeout;
@@ -127,7 +127,7 @@ const LiveOperations = () => {
         const personnelsListChanged = JSON.stringify(personnelsList) !== JSON.stringify(prevPersonnelsList.current);
         prevPersonnelsList.current = personnelsList;
 
-        const debouncedFetchSchedules = debounce(fetchSchedules, 50);
+        const debouncedFetchAppDatas = debounce(fetchAppDatas, 50);
 
         // Check if rangeOptions change requires a fetch
         // const shouldFetchRange =
@@ -138,9 +138,9 @@ const LiveOperations = () => {
 
         // Fetch if personnelsList changed or rangeOptions change requires it
         // if (personnelsListChanged || shouldFetchRange) {
-        debouncedFetchSchedules();
+        debouncedFetchAppDatas();
         //}
-        return () => debouncedFetchSchedules.cancel(); // Cleanup on unmount
+        return () => debouncedFetchAppDatas.cancel(); // Cleanup on unmount
 
     }, [rangeOptions, personnelsList]);
 
