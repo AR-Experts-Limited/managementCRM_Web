@@ -24,6 +24,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import WorkingHours from './pages/WorkingHours/WorkingHours';
 import DailyInvoice from './pages/Invoice/DailyInvoice/DailyInvoice';
 import WeeklyInvoice from './pages/Invoice/WeeklyInvoice/WeeklyInvoice';
+import LiveOperations from './pages/LiveOperations/LiveOperations';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -50,7 +51,7 @@ function App() {
   //  { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
     { path: "/manage-personnels", name: "Manage Personnels", component: ManagePersonnels },
     { path: "/notifications", name: "Notifications", component: Notifications },
-  //  { path: "/live-operations", name: "Live Operations", component: LiveOperations },
+    { path: "/live-operations", name: "Live Operations", component: LiveOperations },
     { path: "/deductions", name: "Deductions", component: Deductions },
     { path: "/incentives", name: "Incentives", component: Incentives },
     { path: "/manage-payments", name: "Manage Payments", component: DailyInvoice },
