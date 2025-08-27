@@ -431,19 +431,6 @@ const WeeklyInvoice = () => {
                                 />
                             </div>
                             <div className="flex flex-col gap-1">
-                                <label className="text-xs font-semibold">Select Vehicle Type:</label>
-                                <select
-                                    disabled={downloadingInvoice || sendingInvoice}
-                                    className={`dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500 ${selectedVehicleType === '' && 'text-gray-400'}`}
-                                    value={selectedVehicleType}
-                                    onChange={(e) => setSelectedVehicleType(e.target.value)}
-                                >
-                                    <option value="">-Select Vehicle Type-</option>
-                                    <option value="Own Vehicle">Own Vehicle</option>
-                                    <option value="Company Vehicle">Company Vehicle</option>
-                                </select>
-                            </div>
-                            <div className="flex flex-col gap-1">
                                 <label className="text-xs font-semibold">Select Role:</label>
                                 <select
                                     disabled={downloadingInvoice || sendingInvoice}
@@ -451,7 +438,6 @@ const WeeklyInvoice = () => {
                                     value={selectedRole}
                                     onChange={(e) => setSelectedRole(e.target.value)}
                                 >
-                                    <option value="">-All Roles-</option>
                                     {roles.map((role) => (
                                         <option key={role.roleName} value={role.roleName}>
                                             {role.roleName}
