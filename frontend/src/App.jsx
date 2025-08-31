@@ -26,6 +26,7 @@ import DailyInvoice from './pages/Invoice/DailyInvoice/DailyInvoice';
 import WeeklyInvoice from './pages/Invoice/WeeklyInvoice/WeeklyInvoice';
 import LiveOperations from './pages/LiveOperations/LiveOperations';
 import ManageUsers from './pages/ManageUsers/ManageUsers';
+import SchedulePlanner from './pages/SchedulePlanner/SchedulePlanner';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -50,12 +51,12 @@ function App() {
 
   const routes = [
     { path: "/dashboard", name: "Dashboard", component: Dashboard },
-  //  { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
+    { path: "/planner", name: "Schedule Planner", component: SchedulePlanner },
     { path: "/manage-personnels", name: "Manage Personnels", component: ManagePersonnels },
     { path: "/notifications", name: "Notifications", component: Notifications },
     { path: "/live-operations", name: "Live Operations", component: LiveOperations },
-    { path: "/deductions", name: "Deductions", component: Deductions },
-    { path: "/incentives", name: "Incentives", component: Incentives },
+  //  { path: "/deductions", name: "Deductions", component: Deductions },
+  //  { path: "/incentives", name: "Incentives", component: Incentives },
     { path: "/manage-payments", name: "Manage Payments", component: DailyInvoice },
     { path: "/add-ons", name: "Additional Charges", component: AdditionalCharges },
     { path: "/print-invoices", name: "Print Invoices", component: WeeklyInvoice },

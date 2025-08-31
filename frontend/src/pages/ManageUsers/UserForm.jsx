@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import InputGroup from '../../components/InputGroup/InputGroup';
 import { useSelector } from 'react-redux';
+import { fetchRoles } from '../../features/roles/roleSlice';
 import SuccessTick from '../../components/UIElements/SuccessTick';
 import TrashBin from '../../components/UIElements/TrashBin';
 import axios from 'axios';
@@ -27,7 +28,6 @@ export const UserForm = ({ clearUser, states, setters, isPrivileged, userHierarc
 
     const { setUser, setUserMode, setAllUsers, setToastOpen } = setters
     const [errors, setErrors] = useState({})
-
 
     const validateFields = () => {
         const fieldsToValidate = ['firstName', 'lastName', 'email', 'role'];

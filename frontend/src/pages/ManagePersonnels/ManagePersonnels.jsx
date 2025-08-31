@@ -29,6 +29,7 @@ const ManagePersonnels = () => {
         phone: '',
         role: '',
         dailyRate: '',
+        employmentStatus: 'Sole Trader',
 
         // nested objects (complete shapes)
         vatDetails: { vatNo: '', vatEffectiveDate: '' },
@@ -83,6 +84,7 @@ const ManagePersonnels = () => {
             signature: '',
             signatureArray: personnel.signature,
             dailyRate: personnel.dailyRate?.toFixed(2),
+            employmentStatus: personnel.employmentStatus || 'Sole Trader',
         })
         setPersonnelMode('edit')
     }

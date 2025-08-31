@@ -22,9 +22,10 @@ const TableFilters = ({ title, state, setters, invoiceMap, handleFileChange, sel
     const { userDetails } = useSelector((state) => state.auth);
     const { list: sites, siteStatus } = useSelector((state) => state.sites)
     const { list: roles, roleStatus } = useSelector((state) => state.roles)
+    console.log("Sites = ", sites);
 
-    const { rangeType, rangeOptions, selectedRangeIndex, days, selectedRole, searchPersonnel } = state
-    const { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedRole, setSearchPersonnel } = setters
+    const { rangeType, rangeOptions, selectedRangeIndex, days, selectedRole, selectedSite, searchPersonnel } = state
+    const { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedRole, setSelectedSite, setSearchPersonnel } = setters
 
     useEffect(() => {
         if (siteStatus === 'idle') dispatch(fetchSites())
@@ -164,17 +165,34 @@ const TableFilters = ({ title, state, setters, invoiceMap, handleFileChange, sel
                 <label className='text-xs font-semibold'>Search Personnel Name:</label>
                 <input type="text" onChange={(e) => setSearchPersonnel(e.target.value)} className='dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 dark:border-dark-5 px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200' placeholder="Personnel name" />
             </div>
-            <div className='flex flex-col gap-1'>
-                <label className='text-xs font-semibold'>Select Role:</label>
-                <select className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300  px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500" value={selectedRole} onChange={(e) => setSelectedRole((e.target.value))}>
-                    {roles
-                        .map(role => (
-                            <option key={role.roleName} value={role.roleName}>
-                                {role.roleName}
+            {   (userDetails?.role === 'Admin' || userDetails?.role === 'super-admin') &&
+                <div className='flex flex-col gap-1'>
+                    <label className='text-xs font-semibold'>Select Role:</label>
+                    <select className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300  px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500" value={selectedRole} onChange={(e) => setSelectedRole((e.target.value))}>
+                        <option value="">All Roles</option>
+                        {roles
+                            .map(role => (
+                                <option key={role.roleName} value={role.roleName}>
+                                    {role.roleName}
+                                </option>
+                            ))}
+                    </select>
+                </div>
+            }
+            {
+                userDetails?.role === 'Operational Manager' &&
+                <div className='flex flex-col gap-1'>
+                    <label className='text-xs font-semibold'>Select Site:</label>
+                    <select className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300  px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500" value={selectedSite} onChange={(e) => setSelectedSite((e.target.value))}>
+                        <option value="">All Sites</option>
+                        {userDetails.siteSelection.map((site) => (
+                            <option key={site} value={site}>
+                                {site}
                             </option>
                         ))}
-                </select>
-            </div>
+                    </select>
+                </div>
+            }
             <div className=' flex flex-col items-center justify-center gap-1'>
                 <label className='ml-8 self-start text-xs font-semibold'>Select {rangeType}: </label>
                 <div className='relative flex items-center justify-center w-full h-full gap-2'>

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   refreshToken: { type: String },
   role: { type: String, required: true },
   access: { type: Array, required: true },
-  site: { type: Array },
+  siteSelection: { type: Array },
   user_ID: { type: String },
   companyId: { type: String },
   expoPushTokens: { type: String },

@@ -14,19 +14,36 @@ const PersonnelSchema = new mongoose.Schema({
     dateOfJoining: { type: Date, required: false },
     phone: { type: String, required: true },
     email: { type: String, required: true },
+    employmentStatus: { type: String, required: true },
     addedBy: { type: Object },
     siteSelection: { type: Array, required: true },
+    companyUtrNo: { type: String, required: false },
     utrNo: { type: String, required: false },
     utrUpdatedOn: { type: Date, required: false },
+    companyUtrUpdatedOn: { type: Date, required: false },
+    companyName: { type: String, required: false },
+    companyRegAddress: { type: String, required: false },
+    companyRegNo: { type: String, required: false },
+    companyRegExpiry: { type: Date, required: false },
     activeStatus: { type: String, required: true, default: "Active" },
     vatDetails: {
         vatNo: {
             type: String,
-            required: function () { return this.vatDetails != null; }
+            required: false
         },
         vatEffectiveDate: {
             type: Date,
-            required: function () { return this.vatDetails != null; }
+            required: function () { return this.vatDetails && this.vatDetails.vatNo != null && this.vatDetails.vatNo !== ''; }
+        }
+    },
+    companyVatDetails: {
+        vatNo: {
+            type: String,
+            required: false
+        },
+        vatEffectiveDate: {
+            type: Date,
+            required: function () { return this.companyVatDetails && this.companyVatDetails.vatNo != null && this.companyVatDetails.vatNo !== ''; }
         }
     },
     dailyRate: { type: Number, required: true },

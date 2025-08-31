@@ -83,6 +83,7 @@ const addPersonnel = async (req, res) => {
   // Parse JSON fields
   personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
   personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
+  personnelData.companyVatDetails = parseJsonField(personnelData, 'companyVatDetails');
   personnelData.drivingLicenseDetails = parseJsonField(personnelData, 'drivingLicenseDetails');
   personnelData.passportDetails = parseJsonField(personnelData, 'passportDetails');
   personnelData.rightToWorkDetails = parseJsonField(personnelData, 'rightToWorkDetails');
@@ -160,6 +161,7 @@ const addPersonnel = async (req, res) => {
       lastName: newPersonnel.lastName,
       email: newPersonnel.email,
       password: hashedPassword,
+      siteSelection: newPersonnel.siteSelection,
       role: newPersonnel.role,
       companyId: personnelData.companyId,
       access: personnelAccess,
@@ -390,6 +392,8 @@ const newUpdate = async (req, res) => {
     personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
   if (personnelData.vatDetails)
     personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
+  if (personnelData.companyVatDetails)
+    personnelData.companyVatDetails = parseJsonField(personnelData, 'companyVatDetails');
   if (personnelData.bankDetails) 
     personnelData.bankDetails = parseJsonField(personnelData, 'bankDetails');
   if (personnelData.passportDetails) 
@@ -414,6 +418,7 @@ const newUpdate = async (req, res) => {
     utrNo: personnelData.utrNo,
     utrUpdatedOn: personnelData.utrUpdatedOn,
     vatDetails: personnelData.vatDetails,
+    companyVatDetails: personnelData.companyVatDetails,
     email: personnelData.email,
     phone: personnelData.phone,
     activeStatus: personnelData.activeStatus,
@@ -421,6 +426,13 @@ const newUpdate = async (req, res) => {
     addedBy: personnelData.addedBy,
     siteSelection: personnelData.siteSelection,
     dailyRate: personnelData.dailyRate,
+    employmentStatus: personnelData.employmentStatus,
+    companyName: personnelData.companyName,
+    companyRegAddress: personnelData.companyRegAddress,
+    companyRegNo: personnelData.companyRegNo,
+    companyRegExpiry: personnelData.companyRegExpiry,
+    companyUtrNo: personnelData.companyUtrNo,
+    companyUtrUpdatedOn: personnelData.companyUtrUpdatedOn
   };
 
   // Handle file uploads

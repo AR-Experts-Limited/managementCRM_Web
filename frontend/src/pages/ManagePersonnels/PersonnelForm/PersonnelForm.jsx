@@ -8,6 +8,7 @@ import PassportTab from './PassportTab';
 import RightToWorkTab from './RightToWorkTab';
 import ECSTab from './ECSTab';
 import DocumentsTab from './DocumentsTab';
+import SelfEmploymentDetails from './SelfEmploymentDetails';
 import SuccessTick from '../../../components/UIElements/SuccessTick';
 import { addPersonnel, updatePersonnel } from '../../../features/personnels/personnelSlice';
 import moment from 'moment'
@@ -69,7 +70,15 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
             : [],
         ecs: (newPersonnel?.ecsDetails?.active)
             ? ['ecsDetails.ecsIssue', 'ecsDetails.ecsExpiry']
-            : []
+            : [],
+        selfEmploymentDetails: newPersonnel.employmentStatus === 'Limited Company' ? [
+            'companyName',
+            'companyRegAddress',
+            'companyRegNo',
+            'companyRegExpiry',
+            ...(newPersonnel.companyVatDetails && newPersonnel.companyVatDetails?.vatNo !== '' ? ['companyVatDetails.vatEffectiveDate'] : [])
+
+        ] : []
     };
 
     const fileFields = [
@@ -90,6 +99,7 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
 
     const objectFields = [
         'vatDetails',
+        'companyVatDetails',
         'bankDetails',
         'drivingLicenseDetails',
         'passportDetails',
@@ -270,6 +280,20 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
         const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
         return keys.reduce((acc, k) => (acc?.[k] ?? undefined), obj);
     };
+
+    useEffect(() => {
+        let updatedTabs = [...tabsInfo];
+
+        // Add or remove Self Employment Details tab based on employment status
+        if (newPersonnel.employmentStatus === 'Limited Company') {
+            if (!updatedTabs.some(tab => tab.id === 'selfEmploymentDetails')) {
+                updatedTabs.splice(1, 0, { id: 'selfEmploymentDetails', label: 'Self Employment Details', component: SelfEmploymentDetails });
+            }
+        } else {
+            updatedTabs = updatedTabs.filter(tab => tab.id !== 'selfEmploymentDetails');
+        }
+        setTabs(updatedTabs);
+    }, [newPersonnel.employmentStatus]);
     
     const onInputChange = (e, inputValue, inputName) => {
       let name, value;

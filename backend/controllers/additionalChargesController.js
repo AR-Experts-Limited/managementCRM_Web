@@ -8,7 +8,7 @@ const getModels = (req) => ({
   DayInvoice: req.db.model('DayInvoice', require('../models/DayInvoice').schema),
   WeeklyInvoice: req.db.model('WeeklyInvoice', require('../models/WeeklyInvoice').schema),
   User: req.db.model('User', require('../models/User').schema),
-  Notification: req.db.model('Notification', require('../models/notifications').schema)
+  Notification: req.db.model('Notification', require('../models/Notification').schema)
 });
 
 const createAdditionalCharge = async (req, res) => {

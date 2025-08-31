@@ -176,8 +176,7 @@ const verifyOtp = async (req, res) => {
     email: user.email,
     role: user.role,
     access: user.access,
-    site: user.site,
-    siteArray: user.siteArray,
+    siteSelection: user.siteSelection,
     message: 'OTP verified successfully'
   });
 }

@@ -18,9 +18,10 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
     const personnelsByRole = useSelector((state) => state.personnels.byRole);
     const [isFilterOpen, setIsFilterOpen] = useState(true);
     const [scroll, setScroll] = useState({ row: 0, col: 0 });
+    const { userDetails } = useSelector((state) => state.auth);
 
-    const { rangeType, rangeOptions, selectedRangeIndex, days, selectedSite, searchPersonnel, personnelsList } = state;
-    const { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedSite, setSearchPersonnel, setPersonnelsList } = setters;
+    const { rangeType, rangeOptions, selectedRangeIndex, days, selectedSite, selectedRole, searchPersonnel, personnelsList } = state;
+    const { setRangeType, setRangeOptions, setSelectedRangeIndex, setDays, setSelectedSite, setSelectedRole, setSearchPersonnel, setPersonnelsList } = setters;
 
     const getPersonnelSiteForDate = (personnel, date) => {
         const traces = personnel?.siteTrace || [];
@@ -69,7 +70,7 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
     }, [personnelStatus, dispatch]);
 
     useEffect(() => {
-        if (Object.keys(personnelsByRole).length > 0 && selectedSite !== '') {
+        if (Object.keys(personnelsByRole).length > 0) {
             const startDate = new Date(days[0]?.date.split(',')[1]);
             const endDate = new Date(days[days.length - 1]?.date.split(',')[1]);
 
@@ -143,6 +144,15 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
             // Filter personnels based on siteTrace and disabled status
             let personnelsList = Object.values(personnelsByRole).flat().filter((personnel) => {
                 if (personnel.disabled) return false;
+                if (userDetails.role == 'Operational Manager') {
+                    if (
+                          !(
+                            Array.isArray(personnel.siteSelection) &&
+                            Array.isArray(userDetails?.siteSelection) &&
+                            personnel.siteSelection.some(s => userDetails.siteSelection.includes(s))
+                          )
+                        ) return false;
+                }
                 const personnelSite = getPersonnelSiteForRange(personnel, startDate, endDate);
                 return Array.isArray(personnelSite)
                     ? personnelSite.includes(selectedSite)
@@ -155,13 +165,12 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                     const siteChanges = getSiteChangeDetails(personnel, startDate, endDate);
                     return {
                         ...personnel,
-                        isStandby: false,
                         siteChanges: siteChanges.length > 0 ? siteChanges : null,
                     };
                 })
             ];
 
-            setPersonnelsList(combinedPersonnelsList);
+            setPersonnelsList(personnelsList);
         }
     }, [personnelsByRole, selectedSite, days]);
 
@@ -221,7 +230,6 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
             ) || false;
 
             const disabledPersonnel = personnel?.activeStatus !== 'Active' ? personnel?.activeStatus : null;
-            const isStandby = personnel?.isStandby || false;
             const isToday = day && new Date(day.date).toDateString() === new Date().toDateString();
 
             let classNames = `flex items-center justify-center border-[0.5px] border-gray-300 ${dayOfChange && !isFirstCol && '!border-l-3 border-dashed border-l-blue-500'} text-sm p-4 h-full `;
@@ -275,14 +283,6 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                                                 {disabledPersonnel}
                                             </div>
                                         )}
-                                        {isStandby && (
-                                            <div className="flex flex-col gap-1">
-                                                <div className="text-left bg-amber-200 text-amber-700 rounded-md p-1 text-xs w-fit">
-                                                    Stand by personnel {!personnel.siteChanges && `from ${personnel.standbySite || personnel.siteSelection}`}
-                                                </div>
-
-                                            </div>
-                                        )}
                                         {personnel.siteChanges && (
                                             <div className="bg-blue-100 text-blue-700 rounded-md p-2 text-xs w-60  shadow w-fit">
                                                 <div className="flex gap-4 items-center">
@@ -294,7 +294,7 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                                     </div>
                                 </div>
                             ) : (
-                                tableData(personnel, day, disabledPersonnel, isStandby)
+                                tableData(personnel, day, disabledPersonnel)
                             )
                         ) : null
                     ) : isFirstCol ? (
@@ -311,14 +311,6 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                                         {disabledPersonnel}
                                     </div>
                                 )}
-                                {isStandby && (
-                                    <div className="flex flex-col gap-1">
-                                        <div className="text-left bg-amber-200 text-amber-700 rounded-md p-1 text-xs w-fit">
-                                            Stand by personnel {!personnel.siteChanges && `from ${personnel.standbySite || personnel.siteSelection}`}
-                                        </div>
-
-                                    </div>
-                                )}
                                 {personnel.siteChanges && (
                                     <div className="bg-blue-100 text-blue-700 rounded-md p-2 text-xs w-60  shadow w-fit">
                                         <div className="flex gap-4 items-center">
@@ -331,7 +323,7 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                             </div>
                         </div>
                     ) : (
-                        tableData(personnel, day, disabledPersonnel, isStandby)
+                        tableData(personnel, day, disabledPersonnel)
                     )}
                 </div>
             );
@@ -438,470 +430,6 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                         />
                     </div>
                     {title === 'Schedule Planner' && <ScheduleStatus />}
-                    {title === 'Manage Summary' && (
-                        <div className="flex p-2 gap-2 md:gap-5 justify-around bg-neutral-100/90 dark:bg-dark-2 shadow border-[1.5px] border-neutral-300/80 dark:border-dark-5 rounded-lg dark:!text-white mb-2 overflow-auto">
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'Access Requested' && !visionTracker?.matchedCsv && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || (visionTracker?.invoice?.approvalStatus !== 'Access Requested' && !visionTracker?.invoice?.csvData)) {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        !inv.matchedCsv &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        !inv.matchedCsv &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'Access Requested' && !visionTracker?.matchedCsv && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <div className="bg-gray-200 h-4 w-4 rounded border border-dashed border-gray-500"></div>
-                                    No Matched CSV (
-                                    {visionTracker?.invoice?.approvalStatus === 'Access Requested' && !visionTracker?.matchedCsv && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            !inv.matchedCsv &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'Access Requested' && !visionTracker?.matchedCsv && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'Access Requested' && visionTracker?.matchedCsv && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || (visionTracker?.invoice?.approvalStatus !== 'Access Requested' && visionTracker?.invoice?.csvData)) {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice.approvalStatus === 'Access Requested' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice.approvalStatus === 'Access Requested' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'Access Requested' && visionTracker?.matchedCsv && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <FcHighPriority size={20} />
-                                    Access Requested (
-                                    {visionTracker?.invoice?.approvalStatus === 'Access Requested' && visionTracker?.matchedCsv && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            inv.matchedCsv &&
-                                            inv?.invoice?.approvalStatus === 'Access Requested' &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length || 0}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'Access Requested' && visionTracker?.matchedCsv && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'Under Edit' && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || visionTracker?.invoice?.approvalStatus !== 'Under Edit') {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Under Edit' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Under Edit' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'Under Edit' && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <i className="flex items-center text-[1rem] text-amber-500 fi fi-rr-pen-square"></i>
-                                    Under Edit (
-                                    {visionTracker?.invoice?.approvalStatus === 'Under Edit' && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            inv.matchedCsv &&
-                                            inv?.invoice?.approvalStatus === 'Under Edit' &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length || 0}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'Under Edit' && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'Under Approval' && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || visionTracker?.invoice?.approvalStatus !== 'Under Approval') {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Under Approval' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Under Approval' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'Under Approval' && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <i className="flex items-center text-[1rem] text-sky-500 fi fi-rs-memo-circle-check"></i>
-                                    Under Approval (
-                                    {visionTracker?.invoice?.approvalStatus === 'Under Approval' && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            inv.matchedCsv &&
-                                            inv?.invoice?.approvalStatus === 'Under Approval' &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'Under Approval' && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'Invoice Generation' && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || visionTracker?.invoice?.approvalStatus !== 'Invoice Generation') {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Invoice Generation' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'Invoice Generation' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'Invoice Generation' && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <FcClock className="!text-primary-500" size={22} />
-                                    Waiting for Invoice Generation (
-                                    {visionTracker?.invoice?.approvalStatus === 'Invoice Generation' && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            inv.matchedCsv &&
-                                            inv?.invoice?.approvalStatus === 'Invoice Generation' &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'Invoice Generation' && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {visionTracker?.invoice?.approvalStatus === 'completed' && (
-                                    <button
-                                        name="previous"
-                                        onClick={() => handleNavigation('previous')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronLeft size={12} />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        if (visionIds.length < 1 || visionTracker?.invoice?.approvalStatus !== 'completed') {
-                                            setVisionIds(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'completed' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )
-                                            );
-                                            setVisionTracker(
-                                                Object.values(invoiceMap).filter(
-                                                    (inv) =>
-                                                        inv.matchedCsv &&
-                                                        inv?.invoice?.approvalStatus === 'completed' &&
-                                                        inv?.invoice?.site === selectedSite &&
-                                                        (searchPersonnel !== ''
-                                                            ? String(inv?.invoice?.personnelName)
-                                                                .toLowerCase()
-                                                                .includes(searchPersonnel.toLowerCase())
-                                                            : true)
-                                                )[0] || null
-                                            );
-                                        } else {
-                                            setVisionIds([]);
-                                            setVisionTracker(null);
-                                        }
-                                    }}
-                                    className={`flex gap-1 items-center text-xs hover:bg-neutral-300 p-1 rounded ${visionTracker?.invoice?.approvalStatus === 'completed' && 'bg-neutral-300 shadow-md'
-                                        } `}
-                                >
-                                    <BsCheckCircleFill className="text-green-600 text-xl" />
-                                    Invoice Generated (
-                                    {visionTracker?.invoice?.approvalStatus === 'completed' && (
-                                        <>
-                                            {visionIds.findIndex((item) => item.invoice._id === visionTracker?.invoice._id) + 1} of{' '}
-                                        </>
-                                    )}
-                                    {Object.values(invoiceMap).filter(
-                                        (inv) =>
-                                            inv.matchedCsv &&
-                                            inv?.invoice?.approvalStatus === 'completed' &&
-                                            inv?.invoice?.site === selectedSite &&
-                                            (searchPersonnel !== ''
-                                                ? String(inv?.invoice?.personnelName)
-                                                    .toLowerCase()
-                                                    .includes(searchPersonnel.toLowerCase())
-                                                : true)
-                                    ).length}
-                                    )
-                                </button>
-                                {visionTracker?.invoice?.approvalStatus === 'completed' && (
-                                    <button
-                                        name="next"
-                                        onClick={() => handleNavigation('next')}
-                                        className="dark:bg-dark-3 flex justify-center items-center bg-white rounded-md w-5 h-5 shadow-sm border border-neutral-200 dark:border-dark-5"
-                                    >
-                                        <FaChevronRight size={12} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
                     {GridComponent()}
                 </div>
             </div>

@@ -209,6 +209,26 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                     <p className={`${errors.Email ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* {errors.email}</p>
                 </div>
 
+                {/* Employment Status */}
+                <div>
+                    <InputGroup
+                        type='toggleswitch'
+                        label='Personnel represents a limited company'
+                        name="employmentStatus"
+                        checked={newPersonnel.employmentStatus === 'Limited Company'}
+                        onChange={(e) => {
+                            onInputChange({
+                                target: {
+                                    name: "employmentStatus",
+                                    value: e.target.checked ? "Limited Company" : "Sole Trader"
+                                }
+                            });
+                        }}
+                        error={errors.employmentStatus}
+                    />
+                    <p className={`${errors.employmentStatus ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide employment status</p>
+                </div>
+
                 {/* Sites */}
                 {(personnelMode === 'create') && <div>
                     <InputGroup
