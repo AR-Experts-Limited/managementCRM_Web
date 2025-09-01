@@ -80,6 +80,22 @@ const addPersonnel = async (req, res) => {
   const { Personnel, Notification, User } = getModels(req);
   const personnelData = req.body;
 
+  // Normalize siteSelection to an array of individual strings
+  if (typeof personnelData.siteSelection === 'string') {
+    personnelData.siteSelection = personnelData.siteSelection
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  } else if (Array.isArray(personnelData.siteSelection)) {
+    // Handles: ['Site1, Site2, Site3'] -> ['Site1','Site2','Site3']
+    personnelData.siteSelection = personnelData.siteSelection.flatMap(v =>
+      String(v)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    );
+  }
+
   // Parse JSON fields
   personnelData.addedBy = parseJsonField(personnelData, 'addedBy');
   personnelData.vatDetails = parseJsonField(personnelData, 'vatDetails');
