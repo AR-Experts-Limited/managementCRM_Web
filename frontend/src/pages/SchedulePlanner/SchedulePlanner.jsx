@@ -6,6 +6,7 @@ import { calculateAllWorkStreaks, checkAllContinuousSchedules } from '../../util
 import moment from 'moment';
 import axios from 'axios';
 import { FaTrashAlt } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { IoIosAddCircle, IoIosAddCircleOutline } from "react-icons/io";
 import { RiCheckDoubleLine } from "react-icons/ri";
 import Modal from '../../components/Modal/Modal'
@@ -500,6 +501,10 @@ const SchedulePlanner = () => {
         if (!connected) setSchedules(prev => prev.filter((item) => item._id !== id))
     }
 
+    const handleAddWorkDay = (personnel, day) => {
+        console.log("Personnel = ", personnel, "\nDay = ", day);
+    }
+
     const tableData = (personnel, day, disabledPersonnel ) => {
 
         const personnelSite = getPersonnelSiteForDate(personnel, day.date);
@@ -570,19 +575,13 @@ const SchedulePlanner = () => {
         const renderClickableCell = (personnel, day) => (
             <div
                 onClick={() =>
-                    setAddScheduleData({
-                        personnel,
-                        date: day.date,
-                        week: day.week,
-                        error: false,
-                        cycle: 1,
-                    })
+                    handleAddWorkDay(personnel, day)
                 }
                 className="cursor-pointer flex h-full w-full justify-center items-center"
             >
                 <div className="group flex justify-center items-center h-full w-40 rounded-md max-w-40 hover:bg-stone-100">
-                    <div className='group-hover:block hidden text-xs bg-gray-50 px-2 py-[0.1rem] border border-neutral-200 rounded'>
-                        {getPersonnelTypeForDate(personnel, day.date)}
+                    <div className="hidden group-hover:flex items-center justify-center w-6 h-6 leading-none bg-gray-50 border border-neutral-200 rounded">
+                        <FaPlus className="w-3 h-3 shrink-0" />
                     </div>
                 </div>
             </div>
@@ -605,7 +604,8 @@ const SchedulePlanner = () => {
         }
 
         else if (getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) {
-            content = renderPlaceholder();
+        //    content = renderPlaceholder();
+              content = renderClickableCell(personnel, day);
         } 
         else if (Object.keys(scheduleMap).length > 0 && !schedule && personnelSite === selectedSite) {
             content = renderStandbyCell(personnel, dateObj);

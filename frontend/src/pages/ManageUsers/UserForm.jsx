@@ -13,8 +13,6 @@ const menuItems = [
     "Notifications",
     "Live Operations",
     "Working Hours",
-    "Deductions",
-    "Incentives",
     "Manage Payments",
     "Additional Charges",
     "Print Invoices",
@@ -28,6 +26,7 @@ export const UserForm = ({ clearUser, states, setters, isPrivileged, userHierarc
 
     const { setUser, setUserMode, setAllUsers, setToastOpen } = setters
     const [errors, setErrors] = useState({})
+    const siteOptions = (sites ?? []).map(s => ({ label: s.siteName, value: s.siteKeyword }));
 
     const validateFields = () => {
         const fieldsToValidate = ['firstName', 'lastName', 'email', 'role'];
@@ -134,9 +133,26 @@ export const UserForm = ({ clearUser, states, setters, isPrivileged, userHierarc
                             <option value='Test User'>Test User</option>
                             <option value='admin'>Admin</option>
                             <option value='super-admin'>Super Admin</option>
+                            <option value='Operations Manager'>Operational Manager</option>
                         </InputGroup>
                         {errors.role && <div className='text-sm text-red-400'>*please select a role</div>}
                     </div>
+                    {   user.role === 'Operations Manager' && 
+                        <div>
+                            <InputGroup
+                                type="multiselect"
+                                name="siteSelection"
+                                label="Select Site(s)"
+                                placeholder="Select site(s)"
+                                value={user.siteSelection}
+                                onChange={(e) => { setErrors(prev => ({ ...prev, siteSelection: false })); setUser(prev => ({ ...prev, siteSelection: e.target.value })) }}
+                                error={errors.siteSelection}
+                                required={true}
+                                options={siteOptions}
+                            />
+                            {errors.role && <div className='text-sm text-red-400'>*please select a site</div>}
+                        </div>
+                    }
                 </div>
                 <div className='h-full md:px-10'>
                     <div className='border border-neutral-200 rounded-lg overflow-hidden md:overflow-auto md:max-h-[33rem]'>

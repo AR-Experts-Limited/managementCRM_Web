@@ -206,7 +206,7 @@ const signUp = async (req, res) => {
     return res.status(400).json({ message: 'Empty body. Set Content-Type: application/json and send a valid JSON payload.' });
   }
 
-  const { firstName, lastName, email, password, role, access, site, otp, otpVerified, otpExpiry, user_ID, companyId } = req.body;
+  const { firstName, lastName, email, password, role, access, siteSelection, otp, otpVerified, otpExpiry, user_ID, companyId } = req.body;
 
   try {
     // Check if the user already exists
@@ -218,6 +218,20 @@ const signUp = async (req, res) => {
     // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    let formattedSiteSelection;
+    if (typeof siteSelection === 'string') {
+      formattedSiteSelection = siteSelection
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    } else if (Array.isArray(siteSelection)) {
+      formattedSiteSelection = siteSelection.flatMap(v =>
+        String(v)
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      );
+    }
 
     // Create a new user
     const newUser = new User({
@@ -227,7 +241,7 @@ const signUp = async (req, res) => {
       password: hashedPassword,
       role: role || 'user', // Default role is 'user' if none is provided
       access,
-      site,
+      siteSelection: formattedSiteSelection,
       companyId,
       otp,
       otpVerified,
