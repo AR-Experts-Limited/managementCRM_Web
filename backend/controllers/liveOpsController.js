@@ -14,7 +14,7 @@ const fetchAppData = async (req, res) => {
       });
     }
 
-    const AppData = req.db.model('AppData', require('../models/appdata').schema);
+    const AppData = req.db.model('AppData', require('../models/AppData').schema);
 
     const appData = await AppData.find({
       personnelId: { $in: ids },
