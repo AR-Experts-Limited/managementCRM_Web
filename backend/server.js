@@ -7,8 +7,12 @@ const mongoose = require('mongoose');
 const path = require("path");
 const { registerClient } = require('./utils/sseService');
 
-const app = express();
+
 const dbMiddleware = require("./middleware/dbMiddleware");
+
+const { protectApp } = require('./middleware/applicationAuthMiddleware'); // Middleware for app routes
+
+const app = express();
 app.use(dbMiddleware);
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', 'https://erp-rainaltd.bizalign.co.uk', 'https://app.bizalign.co.uk'],  // Change this to allow requests from your frontend
@@ -17,6 +21,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -34,6 +40,19 @@ const sitesRoutes = require('./routes/site');
 const rolesRoutes = require('./routes/role');
 const sessionTimeRoutes = require('./routes/sessionTime')
 
+//App Route 
+const applicationAuthRoutes = require('./routes/applicationAuthRoutes');
+const applicationLocationRoutes = require('./routes/applicationLocationRoutes');//App
+const applicationDataRoutes = require('./routes/applicationData');//App
+const appVersionRoutes = require('./routes/applicationVersion');
+const applicationProfileRoutes = require('./routes/applicationProfileRoutes');
+const applicationInboxRoutes = require('./routes/applicationInboxRoutes');
+const applicationDeductionsRoutes = require('./routes/applicationDeductions');
+const applicationNotificationsRoutes = require('./routes/applicationNotifications'); 
+
+
+
+
 // Routes Usage
 app.use('/api/auth', authRoutes);
 app.use('/api/personnels', personnelRoutes);
@@ -49,6 +68,22 @@ app.use('/api/spending-insights', spendingInsightsRoutes);
 app.use('/api/sites', sitesRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/sessionTime', sessionTimeRoutes);
+
+
+//app Auth route
+app.use('/api/applicationAuth', applicationAuthRoutes);
+//App Routes
+app.use('/api/location', protectApp, applicationLocationRoutes);
+app.use('/api/applicationData', protectApp, applicationDataRoutes);//App
+app.use('/api', protectApp, appVersionRoutes);//App
+app.use('/api/app-profile', protectApp, applicationProfileRoutes);
+app.use('/api/app-inbox', protectApp, applicationInboxRoutes);
+app.use('/api/app-deductions', protectApp, applicationDeductionsRoutes);
+app.use('/api/app-notifications', applicationNotificationsRoutes); 
+
+
+
+
 
 const multer = require('multer');
 const multerS3 = require('multer-s3');
