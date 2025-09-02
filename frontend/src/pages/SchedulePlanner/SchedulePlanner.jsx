@@ -501,8 +501,14 @@ const SchedulePlanner = () => {
         if (!connected) setSchedules(prev => prev.filter((item) => item._id !== id))
     }
 
-    const handleAddWorkDay = (personnel, day) => {
+    const handleAddWorkDay = async (personnel, day) => {
         console.log("Personnel = ", personnel, "\nDay = ", day);
+        await axios.post(`${API_BASE_URL}/api/live-ops`, {
+            personnelId: personnel._id,
+            date: new Date(day.date).toUTCString(),
+            user_ID: personnel.user_ID,
+            week: day.week
+        });
     }
 
     const tableData = (personnel, day, disabledPersonnel ) => {

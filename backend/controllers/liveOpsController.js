@@ -32,4 +32,29 @@ const fetchAppData = async (req, res) => {
   }
 }
 
-module.exports = { fetchAppData };
+const addWorkDay = async (req, res) => {
+  try {
+    const {personnelId, user_ID, date, week } = req.body;
+    const AppData = req.db.model('AppData', require('../models/AppData').schema);
+
+    const newAppData = new AppData({
+      personnelId,
+      user_ID,
+      date,
+      week,
+      trip_status: 'not_started',
+      start_trip_checklist: {},
+      end_trip_checklist: {}
+    });
+    await newAppData.save();
+    return res.status(201).json(newAppData);
+  }
+  catch (error) {
+    return res.status(500).json({
+      message: 'Error adding work day',
+      error: error.message,
+    });
+  }
+}
+
+module.exports = { fetchAppData, addWorkDay };
