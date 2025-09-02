@@ -17,7 +17,7 @@ const fetchAppData = async (req, res) => {
     const AppData = req.db.model('AppData', require('../models/AppData').schema);
 
     const appData = await AppData.find({
-      personnelId: { $in: ids },
+      personnel_id: { $in: ids },
       date: { $gte: new Date(startDay), $lte: new Date(endDay) },
     })
     .sort({ date: 1 })  // optional: sort oldest → newest
@@ -34,11 +34,11 @@ const fetchAppData = async (req, res) => {
 
 const addWorkDay = async (req, res) => {
   try {
-    const {personnelId, user_ID, date, week } = req.body;
+    const {personnel_id, user_ID, date, week } = req.body;
     const AppData = req.db.model('AppData', require('../models/AppData').schema);
 
     const newAppData = new AppData({
-      personnelId,
+      personnel_id,
       user_ID,
       date,
       week,

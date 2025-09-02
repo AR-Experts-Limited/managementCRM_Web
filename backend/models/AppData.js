@@ -6,7 +6,7 @@ const AppDataSchema = new mongoose.Schema({
   user_ID: { type: String, required: true },
   trip_status: {
     type: String,
-    enum: ['in_progress', 'completed'],
+    enum: ['in_progress', 'completed', 'not_started'],
     default: 'in_progress',
   },
   date: { type: Date, default: Date.now },

@@ -504,7 +504,7 @@ const SchedulePlanner = () => {
     const handleAddWorkDay = async (personnel, day) => {
         console.log("Personnel = ", personnel, "\nDay = ", day);
         await axios.post(`${API_BASE_URL}/api/live-ops`, {
-            personnelId: personnel._id,
+            personnel_id: personnel._id,
             date: new Date(day.date).toUTCString(),
             user_ID: personnel.user_ID,
             week: day.week
