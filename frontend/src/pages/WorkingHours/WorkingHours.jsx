@@ -21,23 +21,24 @@ import { cn } from "../../lib/utils";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // --- helpers ---
-const getDateFromMaybeMongo = (v) => {
+const getDateFromMongo = (v) => {
   // supports { $date: ISO } or ISO string / Date
   if (!v) return null;
   if (v?.$date) return new Date(v.$date);
   return new Date(v);
 };
 
-const toStartOfDay = (d) => {
+// Local day boundaries -> UTC instants (exclusive end)
+const localStartOfDay = (d) => {
   const x = new Date(d);
-  x.setHours(0,0,0,0);
-  return x;
+  x.setHours(0, 0, 0, 0);      // local midnight
+  return x;                    // toISOString() gives the UTC instant (e.g., previous day 23:00Z in BST)
 };
-
-const toEndOfDay = (d) => {
+const localStartOfNextDay = (d) => {
   const x = new Date(d);
-  x.setHours(23,59,59,999);
-  return x;
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate());  // next local midnight
+  return x;                    // exclusive end
 };
 
 const DatePickerLocal = ({ id, label, iconPosition, name, value, minDate, maxDate, required, onChange, error, disabled }) => {
@@ -130,6 +131,7 @@ const WorkingHours = () => {
     const personnelsByRole = useSelector((state) => state.personnels.byRole);
 
     const [selectedRole, setSelectedRole] = useState('');
+    const [selectedSite, setSelectedSite] = useState(userDetails.siteSelection[0] || '');
     const [selectedWeek, setSelectedWeek] = useState('');
     const [selectedDate, setSelectedDate] = useState('');
     const [invoice, setInvoice] = useState([]);
@@ -146,7 +148,7 @@ const WorkingHours = () => {
         "Personnel Name": "personnelName",
         "Role": "role",
         "Date": "date",
-        "Hours Worked": "comments"
+        "Hours Worked": "hoursWorked"
     }
 
     const [displayColumns, setDisplayColumns] = useState(columns);
@@ -164,14 +166,66 @@ const WorkingHours = () => {
         setSelectedDate(currentDate);
     }, []);
 
-    // keep personnels list in sync with role
+    const getPersonnelSiteForRange = (personnel, startDate, endDate) => {
+       const traces = personnel?.siteTrace || [];
+       if (traces.length === 0) return personnel?.siteSelection;
+       const sorted = traces.slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+       let latestSite = personnel.siteSelection;
+       const relevant = new Set();
+       const start0 = new Date(startDate); start0.setHours(0,0,0,0);
+       const end0 = new Date(endDate);     end0.setHours(0,0,0,0);
+       for (const t of sorted) {
+         const chg = new Date(t.timestamp); chg.setHours(0,0,0,0);
+         if (chg <= end0) {
+           if (chg.getTime() === start0.getTime()) {
+             relevant.add(t.to);
+           } else if (chg > start0 && chg <= end0) {
+             relevant.add(t.from); relevant.add(t.to);
+           } else if (chg < start0) {
+             latestSite = t.to;
+           }
+         }
+       }
+       if (relevant.size === 0 && sorted.length > 0) {
+         const first = sorted[0];
+         if (end0.getTime() < new Date(first.timestamp)) return first.from;
+         return latestSite;
+       }
+       return relevant.size > 0 ? Array.from(relevant) : latestSite;
+     };
+
     useEffect(() => {
-        if (!personnelsByRole) return;
-        const list = selectedRole
-          ? (personnelsByRole[selectedRole] || [])
-          : Object.values(personnelsByRole).flat();
-        setPersonnelsList(list);
-    }, [personnelsByRole, selectedRole]);
+       if (!personnelsByRole) return;
+       // Determine the visible range (daily or weekly) to evaluate siteTrace against
+       let startDate, endDate;
+       if (rangeType === 'daily' && selectedDate) {
+         startDate = new Date(selectedDate);
+         endDate = new Date(selectedDate);
+       } else {
+         const { start, end } = getWeekRange(selectedWeek);
+         startDate = start; endDate = end;
+       }
+   
+       const all = Object.values(personnelsByRole).flat().filter(p => !p.disabled);
+   
+       if (userDetails?.role !== 'Operational Manager' || !selectedSite) {
+         const byRole = selectedRole ? (personnelsByRole[selectedRole] || []).filter(p => !p.disabled) : all;
+         setPersonnelsList(byRole);
+         return;
+       }
+   
+       // OM: only On-Site Managers, sharing at least one site with the OM, and matching selectedSite over the date range
+       const OSMs = all.filter(p => p.role === 'On-Site Manager');
+       const bySite = OSMs.filter(personnel => {
+         if (!(Array.isArray(personnel.siteSelection) && Array.isArray(userDetails?.siteSelection)
+               && personnel.siteSelection.some(s => userDetails.siteSelection.includes(s)))) return false;
+         const siteOverRange = getPersonnelSiteForRange(personnel, startDate, endDate);
+         return Array.isArray(siteOverRange)
+           ? siteOverRange.includes(selectedSite)
+           : siteOverRange === selectedSite;
+       });
+       setPersonnelsList(bySite);
+    }, [personnelsByRole, selectedRole, rangeType, selectedWeek, selectedDate, selectedSite, userDetails?.role]);
 
     const getWeekRange = (weekStr) => {
         const m = moment(weekStr, 'YYYY-[W]WW');
@@ -181,16 +235,22 @@ const WorkingHours = () => {
     };
 
     const buildDateWindow = () => {
-        if (rangeType === 'daily' && selectedDate) {
-            return { start: toStartOfDay(selectedDate), end: toEndOfDay(selectedDate) };
-        }
-        const { start, end } = getWeekRange(selectedWeek);
-        return { start: toStartOfDay(start), end: toEndOfDay(end) };
+      if (rangeType === 'daily' && selectedDate) {
+        return {
+          startUTC: localStartOfDay(selectedDate),
+          endUTC: localStartOfNextDay(selectedDate), // EXCLUSIVE
+        };
+      }
+      const { start, end } = getWeekRange(selectedWeek);
+      return {
+        startUTC: localStartOfDay(start),
+        endUTC: localStartOfNextDay(end), // EXCLUSIVE
+      };
     };
 
     const computeActualHours = (rec) => {
-        const start = getDateFromMaybeMongo(rec?.start_trip_checklist?.time_and_date);
-        const end = getDateFromMaybeMongo(rec?.end_trip_checklist?.time_and_date);
+        const start = getDateFromMongo(rec?.start_trip_checklist?.time_and_date);
+        const end = getDateFromMongo(rec?.end_trip_checklist?.time_and_date);
         if (!start || !end) return 0;
         let hours = (end.getTime() - start.getTime()) / 3600000;
         if (rec?.end_trip_checklist?.one_hour_break) hours -= 1;
@@ -206,12 +266,13 @@ const WorkingHours = () => {
                 return;
             }
 
-            const { start, end } = buildDateWindow();
+            const { startUTC, endUTC } = buildDateWindow();
 
             const res = await axios.post(`${API_BASE_URL}/api/live-ops/fetchappdata`, {
                 personnelId: ids,
-                startDay: new Date(moment(start).format('YYYY-MM-DD')),
-                endDay: new Date(moment(end).format('YYYY-MM-DD')),
+                // Always pass UTC instants; backend should query with: { $gte: startDay, $lt: endDay }
+                startDay: startUTC.toISOString(),
+                endDay: endUTC.toISOString(),
             });
 
             const rawData = res.data.filter(row => row.trip_status == 'completed') || [];
@@ -230,32 +291,26 @@ const WorkingHours = () => {
         if ((selectedRole !== undefined) && (selectedWeek || selectedDate)) {
             fetchAppData();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedRole, selectedWeek, selectedDate, rangeType, personnelsList]);
 
     const preprocessAppData = (data) => {
         // Map over AppData records and normalize into the table row shape used by this component
         return data.map(item => {
-            const person = personnelsList.find(p => p._id === item.personnel_id);
-            const personName = person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() : 'Unknown';
-            const role = person?.role || '-';
+            const personnel = personnelsList.find(p => p._id === item.personnel_id);
+            const personnelName = personnel ? `${personnel.firstName || ''} ${personnel.lastName || ''}`.trim() : 'Unknown';
+            const role = personnel?.role || '-';
 
             const actualHours = computeActualHours(item);
-            const expectedHours = 9; // default target when schedule info not present
-
-            const hasBothTimes = !!(item?.start_trip_checklist?.time_and_date && item?.end_trip_checklist?.time_and_date);
-
-            const hoursWorked = (item?.end_trip_checklist?.time_and_date - item?.start_trip_checklist?.time_and_date)/3600000;
 
             return {
                 _id: item._id,
-                personnelName: personName,
+                personnelName: personnelName,
                 role: role,
                 date: item.date ? new Date(item.date).toLocaleDateString('en-UK') : '',
                 hoursWorked: actualHours,
                 shiftTimes: {
-                    startTime: getDateFromMaybeMongo(item?.start_trip_checklist?.time_and_date)?.toISOString() || null,
-                    endTime: getDateFromMaybeMongo(item?.end_trip_checklist?.time_and_date)?.toISOString() || null,
+                    startTime: getDateFromMongo(item?.start_trip_checklist?.time_and_date)?.toISOString() || null,
+                    endTime: getDateFromMongo(item?.end_trip_checklist?.time_and_date)?.toISOString() || null,
                     oneHourBreak: !!item?.end_trip_checklist?.one_hour_break,
                     actualHours,
                 },
@@ -281,20 +336,6 @@ const WorkingHours = () => {
 
         const [localEditing, setLocalEditing] = useState(false);
         const [localComment, setLocalComment] = useState(defaultComment);
-
-        const saveComment = async () => {
-          const updatedInvoices = invoice.map(inv =>
-              inv._id === item._id ? { ...inv, comments: localComment } : inv
-          );
-          const updatedFiltered = filteredInvoices.map(inv =>
-              inv._id === item._id ? { ...inv, comments: localComment } : inv
-          );
-
-          setInvoice(updatedInvoices);
-          setFilteredInvoices(updatedFiltered);
-          // Intentionally not persisting comments to backend (no endpoint specified for appData comments)
-          setLocalEditing(false);
-        };
 
         return (
             <div style={{ ...style, display: 'flex', alignItems: 'center', padding: '5px' }}>
@@ -363,20 +404,39 @@ const WorkingHours = () => {
 
             <div className={`grid grid-cols-3 p-3 gap-2 md:gap-5 bg-neutral-100/90 dark:bg-dark-2 shadow border-[1.5px] border-neutral-300/80 dark:border-dark-5 rounded-lg overflow-visible dark:!text-white mb-3`}>
                 <div className='flex flex-col gap-1'>
-                    <label className="text-xs font-semibold">Select Role:</label>
-                    <select
-                        className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 px-12 py-3.5 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500"
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                    >
-                        <option value="">All Roles</option>
-                        {roles.map((role) => (
-                            <option key={role.roleName} value={role.roleName}>
-                                {role.roleName}
+                    {userDetails?.role === "Operational Manager" ? (
+                      <>
+                        <label className="text-xs font-semibold">Select Site:</label>
+                        <select
+                          className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 px-12 py-3.5 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500"
+                          value={selectedSite}
+                          onChange={(e) => setSelectedSite(e.target.value)}
+                        >
+                          {userDetails.siteSelection.map((site) => (
+                            <option key={site} value={site}>
+                                {site}
                             </option>
-                        ))}
-                    </select>
-                </div>
+                          ))}
+                        </select>
+                      </>
+                    ) : (
+                      <>
+                        <label className="text-xs font-semibold">Select Role:</label>
+                        <select
+                          className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 px-12 py-3.5 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500"
+                          value={selectedRole}
+                          onChange={(e) => setSelectedRole(e.target.value)}
+                        >
+                          <option value="">All Roles</option>
+                          {roles.map((role) => (
+                            <option key={role.roleName} value={role.roleName}>
+                              {role.roleName}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                  </div>
                     <div className={rangeType === "weekly" ? "flex flex-col gap-1" : "hidden"}>
                         <label className='text-xs font-semibold'>Select Week:</label>
                         <WeekInput

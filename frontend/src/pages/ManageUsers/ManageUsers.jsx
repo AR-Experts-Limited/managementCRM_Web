@@ -18,7 +18,7 @@ const userHierarchy = {
     'Admin': { rank: 2, display: 'Admin', restrictAccess: [] },
     'Compliance': { rank: 3, display: 'Compliance', restrictAccess: ['Approvals', 'Manage Payments', 'Deductions', 'Additional Charges', 'Print Invoices', 'Profit / Loss', 'Application Settings', 'Manage Users'] },
     'Head of Operations': { rank: 4, display: 'Head of Operations', restrictAccess: ['Manage Payments', 'Additional Charges', 'Print Invoices', 'Profit / Loss', 'Application Settings', 'Manage Users'] },
-    'Operational Manager': { rank: 4, display: 'Operational Manager', restrictAccess: ['Manage Payments', 'Additional Charges', 'Print Invoices', 'Profit / Loss', 'Application Settings', 'Manage Users'] },
+    'Operational Manager': { rank: 4, display: 'Operational Manager', restrictAccess: ['Manage Personnels', 'Notifications', 'Print Invoices', 'Manage Payments', 'Additional Charges', 'Application Settings', 'Manage Users'] },
     'OSM': { rank: 5, display: 'On-site Manager', restrictAccess: ['Rate Cards', 'Approvals', 'Manage Personnels', 'Manage Payments', 'Additional Charges', 'Print Invoices', 'Profit / Loss', 'Application Settings', 'Manage Users'] },
 };
 

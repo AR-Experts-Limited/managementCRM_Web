@@ -9,14 +9,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 
 const menuItems = [
+    "Schedule Planner",
     "Manage Personnels",
     "Notifications",
-    "Live Operations",
     "Working Hours",
     "Manage Payments",
     "Additional Charges",
     "Print Invoices",
-    "Spending Insights",
     'Manage Users'
 ];
 
@@ -133,7 +132,7 @@ export const UserForm = ({ clearUser, states, setters, isPrivileged, userHierarc
                             <option value='Test User'>Test User</option>
                             <option value='admin'>Admin</option>
                             <option value='super-admin'>Super Admin</option>
-                            <option value='Operations Manager'>Operational Manager</option>
+                            <option value='Operational Manager'>Operational Manager</option>
                         </InputGroup>
                         {errors.role && <div className='text-sm text-red-400'>*please select a role</div>}
                     </div>

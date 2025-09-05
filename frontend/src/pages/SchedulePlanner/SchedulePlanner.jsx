@@ -549,21 +549,28 @@ const SchedulePlanner = () => {
             return (
                 <div className="relative flex justify-center h-full w-full group">
                     <div className="relative w-40 max-w-40">
-                        <div className={`relative z-6 w-full h-full flex gap-1 items-center justify-between overflow-auto dark:bg-dark-4 dark:text-white bg-gray-100 border border-gray-200 dark:border-dark-5 border-l-4 ${borderColor} rounded-md text-sm p-2 transition-all duration-300 ${(scheduleBelongtoSite && schedule.status === 'not_started') || ['super-admin', 'Admin', 'Compliance'].includes(userDetails?.role) ? 'group-hover:w-[82%]' : ''}`}
+                        <div className={`relative z-6 w-full h-full flex gap-1 items-center justify-between overflow-auto dark:bg-dark-4 dark:text-white bg-gray-100 border border-gray-200 dark:border-dark-5 border-l-4 ${borderColor} rounded-md text-sm p-2 transition-all duration-300 ${(scheduleBelongtoSite && schedule.status === 'not_started') || ['super-admin', 'Admin'].includes(userDetails?.role) || (['Operational Manager'].includes(userDetails?.role) && schedule.trip_status == 'not_started') ? 'group-hover:w-[82%]' : ''}`}
                                     onClick={() => setAddScheduleData(schedule)}>
                             <div className="overflow-auto max-h-[6rem]">
                                 {schedule.trip_status == 'not_started' ? "Not Started" : schedule.trip_status == 'in_progress' ? "In Progress" : "Completed" }
                             </div>
                             <div className='flex flex-col gap-1 items-center justify-center'>
                                 <div className="h-7 w-7 flex justify-center items-center bg-white border border-stone-200 shadow-sm rounded-full p-1">
-                                    {schedule.trip_status == 'not_started' ? "" : schedule.trip_status == 'in_progress' ? <FaHourglassStart className={'text-yellow-400'} size={15}/> : <RiCheckDoubleLine className={'text-green-400'} size={18} /> }
+                                    {schedule.trip_status == 'not_started' ? <FaHourglassStart className={'text-yellow-400'} size={15}/> : schedule.trip_status == 'in_progress' ? <svg className="w-6 h-6" viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg">
+                                                <polyline
+                                                    points="0,25 20,25 30,05 40,40 50,10 60,25 100,25"
+                                                    className="ecg-path stroke-orange-500 stroke-[7] fill-none"
+                                                />
+                                            </svg> : <RiCheckDoubleLine className={'text-green-400'} size={18} /> }
                                 </div>
                             </div>
                         </div>
-                        {renderDeleteButton((e) => {
-                            e.stopPropagation();
-                            handleDeleteSchedule(schedule._id);
-                        })}
+                        {
+                            renderDeleteButton((e) => {
+                                e.stopPropagation();
+                                handleDeleteSchedule(schedule._id);
+                            })
+                        }
                     </div>
                 </div>
             );
@@ -626,7 +633,6 @@ const SchedulePlanner = () => {
 
         else {
             if (userDetails?.role === 'Operational Manager') {
-                console.log("Logged in as Operational Manager - Checking Schedules now");
                 if (getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) {
                     content = renderPlaceholder();
                 } 
