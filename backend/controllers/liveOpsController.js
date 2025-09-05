@@ -1,4 +1,5 @@
 const AppData = require('../models/AppData');
+const { sendToClients } = require('../utils/sseService');
 
 // GET records from AppData
 const fetchAppData = async (req, res) => {
