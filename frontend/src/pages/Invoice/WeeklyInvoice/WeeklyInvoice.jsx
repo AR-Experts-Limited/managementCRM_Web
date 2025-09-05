@@ -114,8 +114,8 @@ const WeeklyInvoice = () => {
                 return true
         }).forEach(inv => {
             let allCompleted = !inv.invoices.some((inv) => inv.approvalStatus !== 'completed');
-            const key = `${inv.personnelId._id}_${inv.serviceWeek}`;
-            map[key] = { ...inv, allCompleted};
+            const key = `${inv.personnelId._id}_${inv.week}`;
+            map[key] = { ...inv, allCompleted };
         });
         setGroupedInvoices(map);
     }, [invoices, searchPersonnel, selectedVehicleType]);
@@ -240,8 +240,8 @@ const WeeklyInvoice = () => {
                     formData.append('weeklyInvoiceId', invoice._id);
                     formData.append('personnelId', invoice.personnelId._id);
                     formData.append('user_ID', invoice.personnelId.user_ID);
-                    formData.append('serviceWeek', invoice.serviceWeek);
-                    formData.append('personnelEmail', invoice.personnelId.Email);
+                    formData.append('serviceWeek', invoice.week);
+                    formData.append('personnelEmail', invoice.personnelId.email);
                     formData.append('personnelName', invoice.personnelId.firstName + ' ' + invoice.personnelId.lastName);
                     formData.append('actionType', actionMap[actionType] || actionType);
                     formData.append('document', new File([mergedPdfBlob], filename, { type: 'application/pdf' }));
@@ -366,28 +366,16 @@ const WeeklyInvoice = () => {
                                             handleShowDetails(invoice);
                                         }
                                     }}
-                                    className={`cursor-pointer relative z-6 w-full h-full flex flex-col justify-center gap-1 items-center overflow-auto dark:bg-dark-4 dark:text-white w-full bg-gray-100 border 
+                                    className={`shadow cursor-pointer relative z-6 w-full h-full flex flex-col justify-center gap-1 items-center overflow-auto dark:bg-dark-4 dark:text-white w-full bg-gray-100 border 
                                     ${selectedInvoices.includes(key) && sendingInvoice !== invoice._id && downloadingInvoice !== invoice._id
                                             ? 'border-[1.5px] border-primary-500' : 'border-gray-300 dark:border-dark-5'} rounded-md text-sm p-2 `}
                                 >
-                                    <div className="grid grid-cols-[6fr_1fr] w-full">
-                                        <strong className="text-xs">Total Invoice count:</strong>
-                                        <div className="text-xs overflow-auto max-h-[4rem] w-full text-center">{invoice?.count}</div>
-                                        <strong className="text-xs">Completed:</strong>
-                                        <div className="overflow-auto max-h-[4rem] w-full text-center">{invoice.invoices.filter((inv) => inv.approvalStatus === 'completed').length}</div>
-                                    </div>
                                     {invoice.sentInvoice.length > 0 &&
                                         <LastSentTime sentInvoice={invoice.sentInvoice} />
                                     }
-                                    {invoice.unsigned ? (
-                                        <div className="flex items-center gap-1 text-[0.7rem] bg-yellow-200 text-yellow-800 rounded-full px-1.5 py-0.5">
-                                            <i className="flex items-center fi fi-sr-seal-exclamation"></i>unsigned docs
-                                        </div>
-                                    ) : invoice?.allCompleted ? (
-                                        <div className="flex gap-1 text-[0.7rem] bg-sky-200 rounded-full px-1 py-0.5">
-                                            <i className="flex items-center fi fi-rr-document"></i>Ready to print
-                                        </div>
-                                    ) : null}
+                                    <div className="flex gap-1 text-xs bg-sky-200 rounded-full px-2 py-1">
+                                        <i className="flex items-center fi fi-rr-document"></i>Ready to print
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -411,7 +399,7 @@ const WeeklyInvoice = () => {
                 </div >
                 <div className='flex flex-col p-2 overflow-auto'>
                     <div className={`transition-all duration-300 ease-in-out ${isFilterOpen ? 'max-h-40 pb-2 opacity-100 visibility-visible' : 'max-h-0 opacity-0 visibility-hidden'}`}>
-                        <div className="grid grid-cols-3 md:grid-cols-[1fr_3fr_3fr_3fr_3fr_4fr] p-2 gap-2 md:gap-5 bg-neutral-100/90 dark:bg-dark-2 shadow border-[1.5px] border-neutral-300/80 dark:border-dark-5 rounded-lg overflow-visible dark:!text-white">
+                        <div className="grid grid-cols-3 md:grid-cols-[1fr_3fr_3fr_3fr_4fr] p-2 gap-2 md:gap-5 bg-neutral-100/90 dark:bg-dark-2 shadow border-[1.5px] border-neutral-300/80 dark:border-dark-5 rounded-lg overflow-visible dark:!text-white">
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-semibold">Invoices sent:</label>
                                 <p>{Object.values(groupedInvoices).reduce((acc, ginv) => {
@@ -466,7 +454,7 @@ const WeeklyInvoice = () => {
                             </div>
                             <div className="flex gap-1 justify-evenly border-[1.5px] border-neutral-300 rounded-md p-2 justify-self-start self-end w-full overflow-auto">
                                 <button
-                                    disabled={changed || Object.values(groupedInvoices).length === 0 || sendingInvoice || downloadingInvoice || (selectedInvoices.length > 0 ? selectedInvoices.some((invKey) => !groupedInvoices[invKey]?.allCompleted) : Object.values(groupedInvoices).some((ginv) => !ginv?.allCompleted))}
+                                    disabled={changed || Object.values(groupedInvoices).length === 0 || sendingInvoice || downloadingInvoice}
                                     className="flex gap-1 bg-sky-400/50 items-center text-xs text-sky-600 rounded px-2 py-1 disabled:bg-gray-300 disabled:text-white"
                                     onClick={async () => {
                                         try {
@@ -572,7 +560,7 @@ const WeeklyInvoice = () => {
                                     {downloadingInvoice ? `Downloaded ${downloadCount}/${selectedInvoices.length > 0 ? selectedInvoices.length : Object.values(groupedInvoices).length}` : `Download ${selectedInvoices.length === 0 || selectedInvoices.length === Object.values(groupedInvoices).length ? `All (${Object.values(groupedInvoices).length})` : `Selected (${selectedInvoices.length})`}`}
                                 </button>
                                 <button
-                                    disabled={changed || Object.values(groupedInvoices).length === 0 || sendingInvoice || downloadingInvoice || (selectedInvoices.length > 0 ? selectedInvoices.some((invKey) => !groupedInvoices[invKey]?.allCompleted) : Object.values(groupedInvoices).some((ginv) => !ginv.allCompleted))}
+                                    disabled={changed || Object.values(groupedInvoices).length === 0 || sendingInvoice || downloadingInvoice}
                                     className="flex gap-1 items-center text-xs bg-amber-400/50 text-amber-600 rounded px-2 py-1 disabled:bg-gray-300 disabled:text-white"
                                     onClick={async () => {
                                         try {
@@ -734,11 +722,11 @@ const WeeklyInvoice = () => {
                                             <div className="flex justify-center gap-2 items-center">
                                                 <div>{week.week}</div>
                                                 <button
-                                                    disabled={Object.values(groupedInvoices).filter(ginv => ginv.serviceWeek === week.week).length === 0 || downloadingInvoice || sendingInvoice}
+                                                    disabled={Object.values(groupedInvoices).filter(ginv => ginv.week === week.week).length === 0 || downloadingInvoice || sendingInvoice}
                                                     onClick={() => {
                                                         const newSelections = Object.values(groupedInvoices)
-                                                            .filter(ginv => ginv.serviceWeek === week.week)
-                                                            .map(ginv => `${ginv.personnelId._id}_${ginv.serviceWeek}`);
+                                                            .filter(ginv => ginv.week === week.week)
+                                                            .map(ginv => `${ginv.personnelId._id}_${ginv.week}`);
                                                         const allSelected = newSelections.every(id => selectedInvoices.includes(id));
                                                         if (allSelected) {
                                                             setSelectedInvoices(selectedInvoices.filter(id => !newSelections.includes(id)));
@@ -748,8 +736,8 @@ const WeeklyInvoice = () => {
                                                         }
                                                     }}
                                                     className={`h-7 w-7 rounded-full p-2 bg-gray-100 shadow border border-gray-200 disabled:!text-gray-300 ${Object.values(groupedInvoices)
-                                                        .filter(ginv => ginv.serviceWeek === week.week)
-                                                        .every(ginv => selectedInvoices.includes(`${ginv.personnelId._id}_${ginv.serviceWeek}`))
+                                                        .filter(ginv => ginv.week === week.week)
+                                                        .every(ginv => selectedInvoices.includes(`${ginv.personnelId._id}_${ginv.week}`))
                                                         ? 'text-primary-200'
                                                         : 'text-neutral-500'
                                                         }`}
@@ -807,7 +795,7 @@ const WeeklyInvoice = () => {
                                 <div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
                                     <p className="text-base font-medium text-gray-900 dark:text-white">
-                                        {currentInvoice?.invoice.personnelId.Email}
+                                        {currentInvoice?.invoice.personnelId.email}
                                     </p>
                                 </div>
                                 <div>
@@ -863,11 +851,11 @@ const WeeklyInvoice = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">Service Week</p>
-                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.serviceWeek}</p>
+                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.week}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">Site</p>
-                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.personnelId.siteSelection}</p>
+                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.personnelId.siteSelection.join(', ')}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">Reference Number</p>
@@ -875,7 +863,7 @@ const WeeklyInvoice = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Invoices</p>
-                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.count}</p>
+                                    <p className="text-base font-medium text-gray-900 dark:text-white">{currentInvoice?.invoice.invoices.length}</p>
                                 </div>
                             </div>
                         </InputWrapper>
@@ -1094,10 +1082,9 @@ const WeeklyInvoice = () => {
                                 <table className="min-w-full border-collapse border border-gray-200 dark:border-dark-5 mb-2">
                                     <thead>
                                         <tr className="bg-primary-800 !text-white">
-                                            <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Status</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Date</th>
-                                            <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Main Service</th>
-                                            <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Service Rate</th>
+                                            <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Service Type</th>
+                                            <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Unit Rate</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">BYOD Rate</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Total Miles</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Mileage Rate</th>
@@ -1118,10 +1105,6 @@ const WeeklyInvoice = () => {
                                             {currentInvoice?.invoice.invoices.some(
                                                 (invoice) => invoice.incentiveDetailforMain?.length > 0 || invoice.incentiveDetailforAdditional?.length > 0) && (
                                                     <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Incentive Rate</th>)}
-                                            {/* {currentInvoice?.invoice.invoices.some(
-                                                (invoice) => invoice.deductionDetail?.length > 0) && (
-                                                    <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Total Deductions</th>
-                                                )} */}
                                             {currentInvoice?.invoice.invoices.some(
                                                 (invoice) =>
                                                     (currentInvoice?.invoice.personnelId?.vatDetails?.vatNo !== '' &&
@@ -1149,32 +1132,26 @@ const WeeklyInvoice = () => {
                                                     new Date(invoice.date) >= new Date(currentInvoice?.invoice.personnelId?.companyVatDetails?.companyVatEffectiveDate);
                                                 return (
                                                     <tr key={invoice._id} className={index % 2 === 0 ? 'bg-white dark:bg-dark-3' : 'bg-gray-50 dark:bg-dark-4'}>
-                                                        <td className='text-sm font-medium text-gray-900 dark:text-white px-2 py-2 border border-gray-200 dark:border-dark-5'>
-                                                            <div className='w-full flex justify-center items-center gap-1 text-xs'><div>{stageIcons[invoice.approvalStatus]}</div></div>
-                                                        </td>
                                                         <td className="text-sm font-medium text-gray-900 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
                                                             {new Date(invoice.date).toLocaleDateString('en-UK')}
                                                         </td>
                                                         <td className="text-sm font-medium text-gray-900 dark:text-white px-2 py-2 border border-gray-200 dark:border-dark-5">
-                                                            {invoice.mainService === 'Route Support' ? `${invoice?.incentiveDetailforMain
-                                                                ?.map(item => item.routeSupportService)
-                                                                .filter(Boolean)
-                                                                .join(', ')} (Route Support )` : `${invoice.mainService}  ${invoice.site !== currentInvoice?.invoice?.personnelId?.siteSelection ? `(${invoice.site})` : ''}`}
+                                                            Office
                                                         </td>
                                                         <td className="text-sm font-medium text-green-600 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            £{invoice.serviceRateforMain}
+                                                            £{invoice.total}
                                                         </td>
                                                         <td className="text-sm font-medium text-green-600 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            £{invoice.byodRate}
+                                                            £{invoice.byodRate || 0}
                                                         </td>
                                                         <td className="text-sm font-medium text-gray-900 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            {invoice.miles}
+                                                            {invoice.miles || 0}
                                                         </td>
                                                         <td className="text-sm font-medium text-gray-900 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            £{invoice.mileage}
+                                                            £{invoice.mileage || 0}
                                                         </td>
                                                         <td className="text-sm font-medium text-green-600 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            £{invoice.calculatedMileage}
+                                                            £{invoice.calculatedMileage || 0}
                                                         </td>
                                                         {currentInvoice?.invoice.invoices.some(
                                                             (inv) => inv.additionalServiceDetails?.service || inv.additionalServiceApproval === 'Requested'
@@ -1227,7 +1204,7 @@ const WeeklyInvoice = () => {
                                                                 </td>
                                                             )}
                                                         <td className="text-sm font-medium text-gray-900 dark:text-white px-4 py-2 border border-gray-200 dark:border-dark-5">
-                                                            £{(invoice.total + totalDeductions).toFixed(2)}
+                                                            £{(invoice.total).toFixed(2)}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1235,7 +1212,7 @@ const WeeklyInvoice = () => {
                                         <tr>
                                             <td
                                                 colSpan={
-                                                    7 +
+                                                    6 +
                                                     (currentInvoice?.invoice.invoices.some(
                                                         (invoice) => invoice.incentiveDetailforMain?.length > 0 || invoice.incentiveDetailforAdditional?.length > 0) ? 1 : 0) +
                                                     (currentInvoice?.invoice.invoices.some(
@@ -1379,7 +1356,7 @@ const WeeklyInvoice = () => {
                     <div className="flex gap-3 p-3 rounded-lg border-2 border-neutral-300 mt-2 w-full">
                         <div className="w-full">
                             <button
-                                disabled={changed || !currentInvoice?.invoice?.allCompleted}
+                                disabled={changed}
                                 className="flex gap-2 bg-sky-400/50 items-center text-sm text-sky-600 rounded px-2 py-1 disabled:bg-gray-300 disabled:text-white"
                                 onClick={() => generatePDF(currentInvoice.invoice, 'downloadInvoice')}
                             >
@@ -1418,7 +1395,7 @@ const WeeklyInvoice = () => {
                         </div>
                         <div className="w-full">
                             <button
-                                disabled={changed || !currentInvoice?.invoice?.allCompleted}
+                                disabled={changed}
                                 className="flex gap-2 items-center text-sm bg-amber-400/50 text-amber-600 rounded px-2 py-1 disabled:bg-gray-300 disabled:text-white"
                                 onClick={() => {
                                     setSendingOneInvoice(true);
@@ -1480,7 +1457,7 @@ const WeeklyInvoice = () => {
                         Update
                     </button>
                     <button
-                        disabled={changed || !currentInvoice?.invoice?.allCompleted || sendingOneInvoice}
+                        disabled={changed || sendingOneInvoice}
                         onClick={() => generatePDF(currentInvoice.invoice, 'print')}
                         className="px-2 h-fit py-1 bg-primary-500 rounded-md text-white hover:bg-primary-600 disabled:bg-gray-300"
                     >

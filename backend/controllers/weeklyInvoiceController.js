@@ -1,5 +1,6 @@
 const { Expo } = require('expo-server-sdk');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 
 // Initialize transporter once at module level
 let transporter = nodemailer.createTransport({
@@ -27,7 +28,7 @@ const fetchWeeklyInvoices = async (req, res) => {
         if (personnelIds && personnelIds.length > 0) {
             query.personnelId = { $in: personnelIds.map(id => new mongoose.Types.ObjectId(id)) };
         }
-        if (serviceWeeks) query.serviceWeek = { $in: serviceWeeks };
+        if (serviceWeeks) query.week = { $in: serviceWeeks };
         if (site) query.site = site;
 
         // Fetch weekly invoices and populate the invoices field
@@ -120,7 +121,7 @@ const updateDocument = async (req, res) => {
                 subject: 'Your Payslip is Ready',
                 html: `
           <div style="font-family: Arial, sans-serif; background-color: #f4f8ff; padding: 20px; border-radius: 10px; text-align: center;">
-            <h2 style="color: #2a73cc;">Your PaySlip is Ready, ${driverName} </h2>
+            <h2 style="color: #2a73cc;">Your PaySlip is Ready, ${personnelName} </h2>
             <p style="font-size: 16px; color: #333;">Please check your earnings for the Week ${serviceWeek} below:</p>
             <div style="margin: 20px 0;">
               <a href="${fileUrl}" target="_blank" rel="noopener" 

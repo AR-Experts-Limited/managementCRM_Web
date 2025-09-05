@@ -10,12 +10,6 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
     let weeklyTotalAddOns = 0;
     let vatAddition = 0;
 
-    const weeklyDeductions = invoice.invoices.flatMap((inv) => inv.deductionDetail?.map((d) => ({ ...d, date: inv.date })) || []);
-
-    weeklyDeductions.map((deduction, idx) => {
-        weeklyTotalDeduction += parseFloat(deduction.rate || 0);
-    })
-
     return (
         <div ref={ref} className="font-sans text-xs bg-[#FFFFFF] p-4">
             <div className="p-1 bg-[#FFFFFF]">
@@ -24,15 +18,15 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                 </div>
                 <div className="flex justify-between mb-2">
                     <div>
-                        <p className='text-[10px] font-bold'>For Deliveries made during the week {invoice.serviceWeek}<br />Period {moment(invoice?.serviceWeek, 'GGGG-[W]WW').startOf('week').format('DD/MM/YYYY')} to {moment(invoice?.serviceWeek, 'GGGG-[W]WW').endOf('week').format('DD/MM/YYYY')} </p>
+                        <p className='text-[10px] font-bold'>For Deliveries made during the week {invoice.week}<br />Period {moment(invoice?.week, 'GGGG-[W]WW').startOf('week').format('DD/MM/YYYY')} to {moment(invoice?.week, 'GGGG-[W]WW').endOf('week').format('DD/MM/YYYY')} </p>
                     </div>
                     <div>
-                        <p className="text-[10px] mb-0.5"><span className="italic font-semibold">Site:</span> {personnelDetails?.siteSelection}</p>
-                        <p className="text-[10px] mb-0.5"><span className="font-semibold">Service Week:</span> {invoice.serviceWeek}</p>
+                        <p className="text-[10px] mb-0.5"><span className="italic font-semibold">Site:</span> {personnelDetails?.siteSelection[0]}</p>
+                        <p className="text-[10px] mb-0.5"><span className="font-semibold">Service Week:</span> {invoice.week}</p>
                         <p className="text-[10px] mb-0.5"><span className="font-semibold">Invoice Number:</span> {invoice.referenceNumber}</p>
                         <p className="text-[10px] mb-0.5">
                             <span className="font-semibold">Due Date:</span>{' '}
-                            {moment(invoice?.serviceWeek, 'GGGG-[W]WW').add(3, 'weeks').startOf('week').add(3, 'days').format('DD/MM/YYYY')}
+                            {moment(invoice?.week, 'GGGG-[W]WW').add(3, 'weeks').startOf('week').add(3, 'days').format('DD/MM/YYYY')}
                         </p>
                     </div>
                 </div>
@@ -71,8 +65,8 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                         </div>
                         <div className="flex-1 text-left">
                             <h4 className="text-[10px] font-bold mb-2 border-b border-[#4B0082] pb-2">Ship To</h4>
-                            <strong className='text-[10px]'>{personnelDetails.siteSelection}</strong>
-                            <p className="text-[10px]">{sites?.find((site) => site.siteKeyword === personnelDetails.siteSelection)?.siteAddress}</p>
+                            <strong className='text-[10px]'>{personnelDetails.siteSelection[0]}</strong>
+                            <p className="text-[10px]">{sites?.find((site) => site.siteKeyword === personnelDetails.siteSelection[0])?.siteAddress}</p>
                         </div>
                     </div>
                 </div>
@@ -115,7 +109,6 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                             {invoice.invoices
                                 .sort((a, b) => new Date(a.date) - new Date(b.date))
                                 .map((item, index) => {
-                                    const totalDeductions = item.deductionDetail?.reduce((sum, ded) => sum + parseFloat(ded.rate || 0), 0) || 0;
                                     const hasPersonnelVat = personnelDetails?.vatDetails?.vatNo && new Date(item.date) >= new Date(personnelDetails.vatDetails.vatEffectiveDate);
                                     const hasCompanyVat = personnelDetails?.companyVatDetails?.companyVatNo && new Date(item.date) >= new Date(personnelDetails.companyVatDetails.companyVatEffectiveDate);
                                     let dayTotal = item.serviceRateforMain + item.byodRate + item.calculatedMileage + (item.serviceRateforAdditional || 0) + (item.incentiveDetailforMain?.rate || 0) + (item.incentiveDetailforAdditional?.rate || 0);
@@ -123,15 +116,12 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                                     return (
                                         <tr key={item._id} className={index % 2 === 0 ? 'bg-[#FFFFFF]' : 'bg-[#F9FAFB]'}>
                                             <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">{new Date(item.date).toLocaleDateString('en-UK')}</td>
-                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">{item.mainService === 'Route Support' ? `${item?.incentiveDetailforMain
-                                                ?.map(item => item.routeSupportService)
-                                                .filter(Boolean)
-                                                .join(', ')} (Route Support )` : `${item.mainService}${item.site !== invoice?.personnelId?.siteSelection ? `(${item.site})` : ''}`}</td>
-                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{item.serviceRateforMain.toFixed(2)}</td>
-                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{item.byodRate.toFixed(2)}</td>
-                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">{item.miles}</td>
-                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">£{item.mileage.toFixed(2)}</td>
-                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{item.calculatedMileage.toFixed(2)}</td>
+                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">Office</td>
+                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{item.total.toFixed(2)}</td>
+                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{(item.byodRate || 0).toFixed(2)}</td>
+                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">{(item.miles || 0)}</td>
+                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">£{(item.mileage || 0).toFixed(2)}</td>
+                                            <td className="text-[10px] font-medium text-[#16A34A] p-2 border border-[#E5E7EB]">£{(item.calculatedMileage || 0).toFixed(2)}</td>
                                             {invoice.invoices.some((inv) => inv.additionalServiceDetails?.service || inv.additionalServiceApproval === 'Requested') && (
                                                 <>
                                                     <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">
@@ -167,7 +157,7 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                                             ) && (
                                                     <td className="text-[10px] w-[3rem] max-w-[3rem] font-medium text-[#111827] p-2 border border-[#E5E7EB]">{hasPersonnelVat || hasCompanyVat ? '20%' : '-'}</td>
                                                 )}
-                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">£{(item.total + totalDeductions).toFixed(2)}</td>
+                                            <td className="text-[10px] font-medium text-[#111827] p-2 border border-[#E5E7EB]">£{(item.total).toFixed(2)}</td>
                                         </tr>
                                     );
                                 })}
@@ -348,10 +338,7 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                         <h4 className="text-[15px] font-bold mb-2.5 border-b border-[#4B0082] pb-2">Summary</h4>
                         <div className="grid grid-cols-[3fr_1fr] text-[13px] gap-y-1">
                             <p className="font-semibold text-left">Total Earnings:</p>
-                            <p className=" text-right">£{(weeklyTotalEarning + invoice.vatTotal + weeklyTotalDeduction).toFixed(2)}</p>
-
-                            <p className="font-semibold text-left">Total Deductions:</p>
-                            <p className=" text-right">-£{weeklyTotalDeduction.toFixed(2)}</p>
+                            <p className=" text-right">£{(weeklyTotalEarning + invoice.vatTotal).toFixed(2)}</p>
 
                             <p className="font-semibold text-left">Total Installments:</p>
                             <p className=" text-right">-£{weeklyTotalInstallment.toFixed(2)}</p>
@@ -361,7 +348,7 @@ export const PrintableContent = React.forwardRef(({ invoice, personnelDetails, s
                         </div>
 
                         <h3 className="text-lg font-bold mt-2.5 text-[#4B0082] text-right">
-                            Amount Due: £{(weeklyTotalEarning + invoice.vatTotal - weeklyTotalInstallment + weeklyTotalAddOns).toFixed(2)}
+                            Amount Due: £{(weeklyTotalEarning + invoice.vatTotal + weeklyTotalAddOns).toFixed(2)}
                         </h3>
 
                     </div>
