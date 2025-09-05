@@ -158,6 +158,11 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
         ) {
           newErrors['email'] = 'Email already exists';
         }
+
+        // Site selection for OSM
+        if (newPersonnel.role === 'On-Site Manager' && newPersonnel.siteSelection.length !== 1) {
+            newErrors['siteSelectionOsm'] = true;
+        }
       }
 
       // Sort code format (bankDetails.sortCode)
@@ -201,6 +206,11 @@ const PersonnelForm = ({ clearPersonnel, userDetails, newPersonnel, setNewPerson
         personnelsList.some((p) => p.email === email)
       ) {
         newErrors['email'] = 'Email already exists';
+      }
+
+      // OSM site selection restriction
+      if (newPersonnel.role === 'On-Site Manager' && newPersonnel.siteSelection.length !== 1) {
+          newErrors['siteSelectionOsm'] = true;
       }
 
       // Sort code format

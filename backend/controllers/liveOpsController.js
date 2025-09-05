@@ -1,12 +1,16 @@
+const AppData = require('../models/AppData');
+
 // GET records from AppData
 const fetchAppData = async (req, res) => {
   try {
-    const { personnelId = "", startDay, endDay } = req.query;
+    const { personnelId, startDay, endDay } = req.body || {};
 
-    // Support comma-separated list or array of IDs
+    // Expect an array; also accept a single value
     const ids = Array.isArray(personnelId)
-      ? personnelId
-      : String(personnelId).split(',').map(s => s.trim()).filter(Boolean);
+      ? personnelId.filter(Boolean)
+      : (personnelId ? [personnelId] : []);
+
+    console.log("Logging in Backend - ", personnelId, startDay, endDay);
 
     if (!ids.length || !startDay || !endDay) {
       return res.status(400).json({
@@ -17,11 +21,11 @@ const fetchAppData = async (req, res) => {
     const AppData = req.db.model('AppData', require('../models/AppData').schema);
 
     const appData = await AppData.find({
-      personnel_id: { $in: ids },
+      personnel_id: { $in: ids },               // or idsCast if casting
       date: { $gte: new Date(startDay), $lte: new Date(endDay) },
     })
-    .sort({ date: 1 })  // optional: sort oldest → newest
-    .lean();            // plain JS objects for faster reads
+    .sort({ date: 1 })
+    .lean();
 
     return res.status(200).json(appData);
   } catch (error) {
@@ -30,7 +34,8 @@ const fetchAppData = async (req, res) => {
       error: error.message,
     });
   }
-}
+};
+
 
 const addWorkDay = async (req, res) => {
   try {
@@ -57,4 +62,18 @@ const addWorkDay = async (req, res) => {
   }
 }
 
-module.exports = { fetchAppData, addWorkDay };
+const deleteSchedule = async (req, res) => {
+  try {
+    const AppData = req.db.model('AppData', require('../models/AppData').schema);
+    const deletedSchedule = await AppData.findByIdAndDelete(req.params.id)
+    sendToClients(req.db, {
+      type: 'scheduleDeleted', // Custom event to signal data update
+      data: deletedSchedule
+    });
+    res.json({ message: 'Schedule deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting schedule', error: error.message });
+  }
+}
+
+module.exports = { fetchAppData, addWorkDay, deleteSchedule };

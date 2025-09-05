@@ -379,11 +379,13 @@ const fetchDayInvoices = async (req, res) => {
     },
   };
 
+  console.log("Generated Query = ", query);
+
   if (role) query.role = role;
 
   try {
     const { DayInvoice } = getModels(req);
-    const dayInvoices = await DayInvoice.find(query);
+    const dayInvoices = await DayInvoice.find(query).populate('personnelId').lean();
     res.status(200).json(dayInvoices);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching invoice', error: error.message });

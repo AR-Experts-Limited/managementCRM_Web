@@ -2,7 +2,7 @@ const { uploadToS3 } = require('../utils/applications3Helper');
 const { sendToClients } = require('../utils/sseService');
 
 const startTrip = async (req, res) => {
-  const AppData = req.db.model('AppData', require('../models/appdata').schema);
+  const AppData = req.db.model('AppData', require('../models/AppData').schema);
   try {
     const { personnel_id, user_ID, latitude, longitude, miles, signed } = req.body;
 
@@ -70,7 +70,7 @@ const startTrip = async (req, res) => {
 };
 
 const endTrip = async (req, res) => {
-  const AppData = req.db.model('AppData', require('../models/appdata').schema);
+  const AppData = req.db.model('AppData', require('../models/AppData').schema);
   try {
     const { trip_id, latitude, longitude, miles, signed, one_hour_break } = req.body;
 
@@ -144,7 +144,7 @@ const endTrip = async (req, res) => {
 };
 
 const getAllTrips = async (req, res) => {
-  const AppData = req.db.model('AppData', require('../models/appdata').schema);
+  const AppData = req.db.model('AppData', require('../models/AppData').schema);
   try {
     const { user_ID } = req.params;
     const { page = 1, limit = 10 } = req.query;

@@ -122,6 +122,7 @@ const loginUser = async (req, res) => {
     // Respond with the access token and other details
     res.json({
       success: true,
+      access
     });
   } catch (error) {
     console.error('Error sending OTP:', error);

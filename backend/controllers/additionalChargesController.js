@@ -12,13 +12,13 @@ const getModels = (req) => ({
 });
 
 const createAdditionalCharge = async (req, res) => {
-     const { personnelId, rate, role, type, week, title, vat } = req.body;
+     const { personnelId, rate, role, type, week, title, vat, user_ID } = req.body;
   try {
     const { AdditionalCharges, Personnel, DayInvoice, WeeklyInvoice, User, Notification } = getModels(req);
     const doc = req.files[0]?.location || '';
 
     // Step 1: Find the WeeklyInvoice
-    const weeklyInvoice = await WeeklyInvoice.findOne({ personnelId, serviceWeek: week });
+    const weeklyInvoice = await WeeklyInvoice.findOne({ personnelId, week });
     if (!weeklyInvoice) {
       return res.status(404).json({ message: 'WeeklyInvoice not found for the given personnel and week' });
     }
@@ -68,14 +68,13 @@ const createAdditionalCharge = async (req, res) => {
 
     // Sum DayInvoice totals
     for (const inv of allDayInvoices) {
-      const totalDeductions = inv.deductionDetail?.reduce(
-        (sum, ded) => sum + Number(ded.rate || 0),
-        0
-      );
       const invBaseTotal = +parseFloat(inv.total || 0).toFixed(2);
+
+      console.log('Day Invoice Total:', inv._id, '-', inv.total);
+
       weeklyBaseTotal += invBaseTotal;
       if (isVatApplicable(new Date(inv.date))) {
-        weeklyVatTotal += +parseFloat((invBaseTotal + totalDeductions) * 0.2).toFixed(2);
+        weeklyVatTotal += +parseFloat((invBaseTotal) * 0.2).toFixed(2);
       }
     }
 
@@ -101,9 +100,9 @@ const createAdditionalCharge = async (req, res) => {
         rateAdjustment = -rateAdjustment;
       }
       additionalChargesTotal += +parseFloat(rateAdjustment).toFixed(2);
-      // if (isVatApplicable(new Date(charge.week))) {
-      //   weeklyVatTotal += +parseFloat(rateAdjustment * 0.2).toFixed(2);
-      // }
+      if (isVatApplicable(new Date(charge.week))) {
+        weeklyVatTotal += +parseFloat(rateAdjustment * 0.2).toFixed(2);
+      }
     }
 
     weeklyBaseTotal = +parseFloat(weeklyBaseTotal + additionalChargesTotal).toFixed(2);
@@ -111,6 +110,11 @@ const createAdditionalCharge = async (req, res) => {
     const finalWeeklyTotal = +parseFloat(weeklyBaseTotal + weeklyVatTotal).toFixed(2);
 
     // Step 9: Update WeeklyInvoice
+    console.log('Weekly Total:', weeklyInvoice.total);
+    console.log('VAT Total = ', weeklyInvoice.vatTotal);
+    console.log('Final Weekly Total:', finalWeeklyTotal);
+    console.log('Final VAT Total = ', weeklyVatTotal);
+
     weeklyInvoice.total = finalWeeklyTotal;
     weeklyInvoice.vatTotal = weeklyVatTotal;
     await weeklyInvoice.save();
@@ -183,10 +187,10 @@ const fetchAdditionalCharges = async (req, res) => {
 }
 
 const fetchAdditionalChargesByRolesWeek = async (req, res) => {
-  const { role, serviceWeek } = req.query;
+  const { role, week } = req.query;
 
-  if (!role || !serviceWeek) {
-    return res.status(400).json({ message: "Missing role or serviceWeek in query" });
+  if (!role || !week) {
+    return res.status(400).json({ message: "Missing role or week in query" });
   }
 
   try {
@@ -194,7 +198,7 @@ const fetchAdditionalChargesByRolesWeek = async (req, res) => {
 
     const charges = await AdditionalCharges.find({
       role: role,
-      week: serviceWeek
+      week: week
     });
 
     res.status(200).json(charges);
@@ -218,7 +222,7 @@ const deleteAdditionalCharge = async (req, res) => {
     // Step 2: Find the WeeklyInvoice
     const weeklyInvoice = await WeeklyInvoice.findOne({
       personnelId: additionalCharge.personnelId,
-      serviceWeek: additionalCharge.week,
+      week: additionalCharge.week,
     });
 
     if (!weeklyInvoice) {
@@ -264,14 +268,10 @@ const deleteAdditionalCharge = async (req, res) => {
 
     // Sum DayInvoice totals
     for (const inv of allDayInvoices) {
-      const totalDeductions = inv.deductionDetail?.reduce(
-        (sum, ded) => sum + Number(ded.rate || 0),
-        0
-      );
       const invBaseTotal = +parseFloat(inv.total || 0).toFixed(2);
       weeklyBaseTotal += invBaseTotal;
       if (isVatApplicable(new Date(inv.date))) {
-        weeklyVatTotal += +parseFloat((invBaseTotal + totalDeductions) * 0.2).toFixed(2);
+        weeklyVatTotal += +parseFloat((invBaseTotal) * 0.2).toFixed(2);
       }
     }
 

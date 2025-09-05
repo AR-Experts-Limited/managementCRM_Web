@@ -41,6 +41,7 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
     };
 
     const handleChangeOfSite = (e) => {
+        console.log('Site selection changed:', e.target.value);
         setNewPersonnel(prev => ({ ...prev, siteSelection: e.target.value }));
     };
 
@@ -229,24 +230,6 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                     <p className={`${errors.employmentStatus ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please provide employment status</p>
                 </div>
 
-                {/* Sites */}
-                {(personnelMode === 'create') && <div>
-                    <InputGroup
-                        type="multiselect"
-                        name="siteSelection"
-                        label="Select Site(s)"
-                        placeholder="Select site(s)"
-                        value={newPersonnel.siteSelection}
-                        onChange={handleChangeOfSite}
-                        error={errors.siteSelection}
-                        iconPosition="left"
-                        icon={<FaBuildingUser className="text-neutral-300" />}
-                        required={true}
-                        options={siteOptions}
-                    />
-                    <p className={`${errors.siteSelection ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
-                </div>}
-
                 {(personnelMode === 'create') && <div>
                     <InputGroup type='dropdown'
                         name='role'
@@ -265,7 +248,26 @@ const PersonnelInfoTab = ({ sites, userDetails, newPersonnel, setNewPersonnel, o
                             </option>
                         ))}
                     </InputGroup>
+                    <p className={`${errors.role ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
+                </div>}
+
+                {/* Sites */}
+                {(personnelMode === 'create') && <div>
+                    <InputGroup
+                        type="multiselect"
+                        name="siteSelection"
+                        label="Select Site(s)"
+                        placeholder="Select site(s)"
+                        value={newPersonnel.siteSelection}
+                        onChange={handleChangeOfSite}
+                        error={errors.siteSelection}
+                        iconPosition="left"
+                        icon={<FaBuildingUser className="text-neutral-300" />}
+                        required={true}
+                        options={siteOptions}
+                    />
                     <p className={`${errors.siteSelection ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* Please select a valid site</p>
+                    <p className={`${errors.siteSelectionOsm ? 'visible' : 'invisible'} my-1 text-sm font-light text-red`}>* OSMs can only have 1 Site</p>
                 </div>}
 
                 {/* Daily Rate */}

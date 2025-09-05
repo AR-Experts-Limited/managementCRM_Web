@@ -113,11 +113,9 @@ const WeeklyInvoice = () => {
             else
                 return true
         }).forEach(inv => {
-            let installmentUnsigned = inv.installments.some((id) => !id.signed);
-            let deductionUnsigned = inv.invoices.deductionDetail?.some((dd) => !dd.signed);
             let allCompleted = !inv.invoices.some((inv) => inv.approvalStatus !== 'completed');
             const key = `${inv.personnelId._id}_${inv.serviceWeek}`;
-            map[key] = { ...inv, allCompleted, unsigned: (installmentUnsigned || deductionUnsigned) };
+            map[key] = { ...inv, allCompleted};
         });
         setGroupedInvoices(map);
     }, [invoices, searchPersonnel, selectedVehicleType]);
@@ -139,11 +137,11 @@ const WeeklyInvoice = () => {
     }, [selectedMonth]);
 
     useEffect(() => {
-        if (Object.keys(personnelsByRole).length > 0 && selectedRole) {
-            let personnelsList = personnelsByRole[selectedRole]?.filter((personnel) => !personnel.disabled) || [];
-            if (selectedRole !== '') personnelsList = personnelsByRole[selectedRole] || [];
-
-            setPersonnelsList([...personnelsList]);
+        if (Object.keys(personnelsByRole).length > 0) {
+            let personnelsList = selectedRole === ''
+                ? Object.values(personnelsByRole).flat()
+                : (personnelsByRole[selectedRole] || []);
+            setPersonnelsList(personnelsList.filter(p => !p.disabled));
         }
     }, [personnelsByRole, selectedRole]);
 
@@ -438,6 +436,7 @@ const WeeklyInvoice = () => {
                                     value={selectedRole}
                                     onChange={(e) => setSelectedRole(e.target.value)}
                                 >
+                                    <option value="">All Roles</option>
                                     {roles.map((role) => (
                                         <option key={role.roleName} value={role.roleName}>
                                             {role.roleName}

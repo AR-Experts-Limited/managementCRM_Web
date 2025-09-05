@@ -184,7 +184,6 @@ const TableFilters = ({ title, state, setters, invoiceMap, handleFileChange, sel
                 <div className='flex flex-col gap-1'>
                     <label className='text-xs font-semibold'>Select Site:</label>
                     <select className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300  px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200 dark:border-dark-5 disabled:border-gray-200 disabled:text-gray-500" value={selectedSite} onChange={(e) => setSelectedSite((e.target.value))}>
-                        <option value="">All Sites</option>
                         {userDetails.siteSelection.map((site) => (
                             <option key={site} value={site}>
                                 {site}

@@ -141,36 +141,67 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                 return siteChanges;
             };
 
-            // Filter personnels based on siteTrace and disabled status
-            let personnelsList = Object.values(personnelsByRole).flat().filter((personnel) => {
-                if (personnel.disabled) return false;
-                if (userDetails.role == 'Operational Manager') {
-                    if (
-                          !(
-                            Array.isArray(personnel.siteSelection) &&
-                            Array.isArray(userDetails?.siteSelection) &&
-                            personnel.siteSelection.some(s => userDetails.siteSelection.includes(s))
-                          )
-                        ) return false;
-                }
+        //    // Filter personnels based on siteTrace and disabled status
+        //    let personnelsList = Object.values(personnelsByRole).flat().filter((personnel) => {
+        //        if (personnel.disabled) return false;
+        //        if (userDetails.role == 'Operational Manager') {
+        //            if (
+        //                  !(
+        //                    Array.isArray(personnel.siteSelection) &&
+        //                    Array.isArray(userDetails?.siteSelection) &&
+        //                    personnel.siteSelection.some(s => userDetails.siteSelection.includes(s))
+        //                  )
+        //                ) return false;
+        //        }
+        //        const personnelSite = getPersonnelSiteForRange(personnel, startDate, endDate);
+        //        return Array.isArray(personnelSite)
+        //            ? personnelSite.includes(selectedSite)
+        //            : personnelSite === selectedSite;
+        //    });
+//
+        //    // Combine personnelsList and standbypersonnelsList
+        //    const combinedPersonnelsList = [
+        //        ...personnelsList.map((personnel) => {
+        //            const siteChanges = getSiteChangeDetails(personnel, startDate, endDate);
+        //            return {
+        //                ...personnel,
+        //                siteChanges: siteChanges.length > 0 ? siteChanges : null,
+        //            };
+        //        })
+        //    ];
+//
+        //    setPersonnelsList(personnelsList);
+
+            // Start from all non-disabled personnels
+            const all = Object.values(personnelsByRole).flat().filter(p => !p.disabled);
+
+            // If not OM, or no site is selected yet, do not site-filter here.
+            if (userDetails.role !== 'Operational Manager' || !selectedSite || !days?.length) {
+                const byRole = selectedRole
+                    ? (personnelsByRole[selectedRole] || []).filter(p => !p.disabled)
+                    : all;
+                setPersonnelsList(byRole);
+                return;
+            }
+
+            // OM: restrict to personnels sharing at least one site with the OM, then
+            // match the selectedSite across the visible date range (accounts for siteTrace).
+            const OSMs = all.filter(p => p.role == 'On-Site Manager');
+            const bySite = OSMs.filter((personnel) => {
+                if (
+                    !(
+                        Array.isArray(personnel.siteSelection) &&
+                        Array.isArray(userDetails?.siteSelection) &&
+                        personnel.siteSelection.some(s => userDetails.siteSelection.includes(s))
+                    )
+                ) return false;
                 const personnelSite = getPersonnelSiteForRange(personnel, startDate, endDate);
                 return Array.isArray(personnelSite)
                     ? personnelSite.includes(selectedSite)
                     : personnelSite === selectedSite;
             });
 
-            // Combine personnelsList and standbypersonnelsList
-            const combinedPersonnelsList = [
-                ...personnelsList.map((personnel) => {
-                    const siteChanges = getSiteChangeDetails(personnel, startDate, endDate);
-                    return {
-                        ...personnel,
-                        siteChanges: siteChanges.length > 0 ? siteChanges : null,
-                    };
-                })
-            ];
-
-            setPersonnelsList(personnelsList);
+            setPersonnelsList(bySite);
         }
     }, [personnelsByRole, selectedSite, days]);
 

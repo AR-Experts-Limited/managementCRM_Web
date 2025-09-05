@@ -9,6 +9,7 @@ import { FaTrashAlt } from "react-icons/fa";
 import { FaPlus } from "react-icons/fa";
 import { IoIosAddCircle, IoIosAddCircleOutline } from "react-icons/io";
 import { RiCheckDoubleLine } from "react-icons/ri";
+import { FaHourglassStart } from "react-icons/fa";
 import Modal from '../../components/Modal/Modal'
 import { addSchedule, deleteSchedule } from '../../features/schedules/scheduleSlice';
 import InputGroup from '../../components/InputGroup/InputGroup'
@@ -24,12 +25,13 @@ import "react-virtualized/styles.css";
 import { debounce } from 'lodash'; // or import from './utils/debounce';
 import Exclamation from '../../components/UIElements/Exclamation';
 import { IoMoonOutline, IoMoon, IoSunny } from "react-icons/io5";
+import { ImageViewer } from './ImageViewer';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const getPersonnelSiteForDate = (personnel, date) => {
     const traces = personnel?.siteTrace || [];
     if (traces.length === 0) {
-        return personnel?.siteSelection;
+        return personnel?.siteSelection[0];
     }
 
     const targetDate = new Date(date)
@@ -187,14 +189,16 @@ const SchedulePlanner = () => {
     }, [personnelsByRole, selectedRole]);
 
     useEffect(() => {
-      const allPersonnels = Object.values(personnelsByRole ?? {}).flat();
+        let allPersonnels = Object.values(personnelsByRole ?? {}).flat();
+        if (userDetails.role == 'Operational Manager') {
+            allPersonnels = allPersonnels.filter(p => p.role == 'On-Site Manager');
+        }   
 
-      const filtered = selectedSite
-        ? allPersonnels.filter(personnel => personnel.siteSelection.includes(selectedSite))
-        : allPersonnels;
-
-      setPersonnelsList(filtered);
-    }, [selectedSite]);
+        const filtered = selectedSite
+          ? allPersonnels.filter(personnel => personnel.siteSelection.includes(selectedSite))
+          : allPersonnels;  
+        setPersonnelsList(filtered);
+    }, [selectedSite, personnelsByRole, userDetails?.role]);
 
 
     const ScheduleStatus = () => {
@@ -240,13 +244,12 @@ const SchedulePlanner = () => {
 
             try {
                 const rangeOptionsVal = Object.values(rangeOptions);
-                const response = await axios.get(`${API_BASE_URL}/api/schedule/filter1`, {
-                    params: {
+                const response = await axios.post(`${API_BASE_URL}/api/live-ops/fetchappdata`, {
                         personnelId: personnelsList.map((personnel) => personnel._id),
                         startDay: new Date(moment(rangeOptionsVal[0]?.start).format('YYYY-MM-DD')),
                         endDay: new Date(moment(rangeOptionsVal[rangeOptionsVal.length - 1]?.end).format('YYYY-MM-DD')),
                     },
-                });
+                );
 
                 clearTimeout(loadingTimeoutRef.current);
                 loadingTimeoutRef.current = null;
@@ -282,11 +285,13 @@ const SchedulePlanner = () => {
     useEffect(() => {
         let map = {}
         schedules.forEach(sch => {
-            const dateKey = new Date(sch.day).toLocaleDateString('en-UK'); // normalize date
-            const key = `${dateKey}_${sch.personnelId}`;
+            const dateKey = new Date(sch.date).toLocaleDateString('en-UK'); // normalize date
+            const key = `${dateKey}_${sch.personnel_id}`;
             map[key] = sch;
+            console.log("Key = ", key, " for schedule ", sch);
         });
         setScheduleMap(map)
+        console.log("Schedule Map = ", map);
     }, [schedules])
 
     useEffect(() => {
@@ -497,19 +502,28 @@ const SchedulePlanner = () => {
     }
 
     const handleDeleteSchedule = async (id) => {
-        await axios.delete(`${API_BASE_URL}/api/schedule/${id}`);
-        if (!connected) setSchedules(prev => prev.filter((item) => item._id !== id))
+        await axios.delete(`${API_BASE_URL}/api/live-ops/${id}`);
+        //if (!connected) setSchedules(prev => prev.filter((item) => item._id !== id))
+        setSchedules(prev => prev.filter((item) => item._id !== id))
     }
 
     const handleAddWorkDay = async (personnel, day) => {
         console.log("Personnel = ", personnel, "\nDay = ", day);
-        await axios.post(`${API_BASE_URL}/api/live-ops`, {
+        const insertData = await axios.post(`${API_BASE_URL}/api/live-ops`, {
             personnel_id: personnel._id,
             date: new Date(day.date).toUTCString(),
             user_ID: personnel.user_ID,
             week: day.week
         });
+        console.log("Insert Data = ", insertData.data);
+        setSchedules(prev => [...prev, insertData.data]);
     }
+
+    useEffect(() => {
+      if (userDetails?.role === 'Operational Manager' && !selectedSite) {
+        setSelectedSite(userDetails?.siteSelection?.[0] || '');
+      }
+    }, [userDetails, selectedSite, setSelectedSite]);
 
     const tableData = (personnel, day, disabledPersonnel ) => {
 
@@ -535,13 +549,14 @@ const SchedulePlanner = () => {
             return (
                 <div className="relative flex justify-center h-full w-full group">
                     <div className="relative w-40 max-w-40">
-                        <div className={`relative z-6 w-full h-full flex gap-1 items-center justify-between overflow-auto dark:bg-dark-4 dark:text-white bg-gray-100 border border-gray-200 dark:border-dark-5 border-l-4 ${borderColor} rounded-md text-sm p-2 transition-all duration-300 ${(scheduleBelongtoSite && schedule.status === 'not_started') || ['super-admin', 'Admin', 'Compliance'].includes(userDetails?.role) ? 'group-hover:w-[82%]' : ''}`}>
+                        <div className={`relative z-6 w-full h-full flex gap-1 items-center justify-between overflow-auto dark:bg-dark-4 dark:text-white bg-gray-100 border border-gray-200 dark:border-dark-5 border-l-4 ${borderColor} rounded-md text-sm p-2 transition-all duration-300 ${(scheduleBelongtoSite && schedule.status === 'not_started') || ['super-admin', 'Admin', 'Compliance'].includes(userDetails?.role) ? 'group-hover:w-[82%]' : ''}`}
+                                    onClick={() => setAddScheduleData(schedule)}>
                             <div className="overflow-auto max-h-[6rem]">
-                                {schedule.service}
+                                {schedule.trip_status == 'not_started' ? "Not Started" : schedule.trip_status == 'in_progress' ? "In Progress" : "Completed" }
                             </div>
                             <div className='flex flex-col gap-1 items-center justify-center'>
                                 <div className="h-7 w-7 flex justify-center items-center bg-white border border-stone-200 shadow-sm rounded-full p-1">
-                                    <RiCheckDoubleLine className={schedule.acknowledged ? 'text-green-400' : ''} size={18} />
+                                    {schedule.trip_status == 'not_started' ? "" : schedule.trip_status == 'in_progress' ? <FaHourglassStart className={'text-yellow-400'} size={15}/> : <RiCheckDoubleLine className={'text-green-400'} size={18} /> }
                                 </div>
                             </div>
                         </div>
@@ -609,43 +624,39 @@ const SchedulePlanner = () => {
             content = <div className='h-full w-full rounded-md bg-gray-200 animate-pulse'></div>
         }
 
-        else if (getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) {
-        //    content = renderPlaceholder();
-              content = renderClickableCell(personnel, day);
-        } 
-        else if (Object.keys(scheduleMap).length > 0 && !schedule && personnelSite === selectedSite) {
-            content = renderStandbyCell(personnel, dateObj);
-        }
-
-        else if (schedule?.service === 'Voluntary-Day-off') {
-            content = (
-                <div className="relative flex justify-center h-full w-full group">
-                    <div className="relative max-w-40">
-                        <div className="relative z-6 w-full h-full flex items-center justify-center overflow-auto dark:bg-dark-4 dark:text-white bg-gray-50 border border-gray-200 dark:border-dark-5 rounded-md text-sm p-2 px-4 transition-all duration-300 group-hover:w-[82%] bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
-                            <div className="overflow-auto max-h-[4rem]">{schedule.service}</div>
+        else {
+            if (userDetails?.role === 'Operational Manager') {
+                console.log("Logged in as Operational Manager - Checking Schedules now");
+                if (getPersonnelSiteForDate(personnel, new Date(day.date)) !== selectedSite) {
+                    content = renderPlaceholder();
+                } 
+                else if (schedule) {
+                    content = renderScheduleBox({ schedule, scheduleBelongtoSite, streak });
+                } else if (disabledPersonnel) {
+                    content = renderPlaceholder();
+                } else if (continuousSchedule < 3) {
+                    const label = continuousSchedule === "1" ? 'Unavailable' : 'Day-off';
+                    content = (
+                        <div className="flex justify-center items-center w-full h-full rounded-lg border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
+                            <div className="text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
+                                {label}
+                            </div>
                         </div>
-                        {renderDeleteButton((e) => {
-                            e.stopPropagation();
-                            handleDeleteSchedule(schedule._id);
-                        })}
-                    </div>
-                </div>
-            );
-        } else if (schedule) {
-            content = renderScheduleBox({ schedule, scheduleBelongtoSite, streak });
-        } else if (disabledPersonnel) {
-            content = renderPlaceholder();
-        } else if (continuousSchedule < 3) {
-            const label = continuousSchedule === "1" ? 'Unavailable' : 'Day-off';
-            content = (
-                <div className="flex justify-center items-center w-full h-full rounded-lg border-dashed border-gray-200 bg-[repeating-linear-gradient(-45deg,#e4e4e4_0px,#e4e4e4_2px,transparent_2px,transparent_6px)]">
-                    <div className="text-sm text-center text-white bg-stone-300 px-1 py-0.5 rounded-md">
-                        {label}
-                    </div>
-                </div>
-            );
-        } else {
-            content = renderClickableCell(personnel, day);
+                    );
+                } else {
+                    content = renderClickableCell(personnel, day);
+                }
+            }
+
+            else {
+                if (schedule) {
+                    content = renderScheduleBox({ schedule, streak });
+                } else if (disabledPersonnel) {
+                    content = renderPlaceholder();
+                }  else {
+                    content = renderClickableCell(personnel, day);
+                }
+            }
         }
 
 
@@ -665,84 +676,72 @@ const SchedulePlanner = () => {
                 </div>
             </div>
             < TableStructure title={'Schedule Planner'} state={state} setters={setters} tableData={tableData} onDownloadDayCSV={handleDownloadDayCSV} ScheduleStatus={ScheduleStatus} />
-            <Modal isOpen={addScheduleData} >
-                <div className='px-6 py-3 border-b border-neutral-300'><h1>Add Schedule</h1></div>
-                <div className='p-6 md:w-[30rem] '>
-                    <div className='flex-1 flex flex-col gap-3'>
-                        <div className='grid grid-cols-[2fr_4fr] w-full text-sm '><span className=' font-medium'>Personnel name:</span> {addScheduleData?.personnel.firstName + ' ' + addScheduleData?.personnel.lastName}</div>
-                        <div className='grid grid-cols-[2fr_4fr] w-full text-sm '><span className=' font-medium'>Vehicle Type:</span>{getPersonnelTypeForDate(addScheduleData?.personnel, addScheduleData?.date)}</div>
-                        <div className='grid grid-cols-[2fr_4fr] w-full text-sm '><span className=' font-medium'>Date:</span> {addScheduleData?.date}</div>
-
-                        {<div className='flex rounded-lg border-2 border-neutral-300'>
-                            <div className='relative flex justify-center border-r border-neutral-300 p-4 w-full'>
-                                <div className='flex absolute top-0 left-0 justify-center bg-gray-300/70 w-full text-sm '>Stand-by</div>
-
-                                <div className='z-5 relative cursor-pointer mt-4'>
-                                    <label htmlFor="standby" className="cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            id="standby"
-                                            // checked={standbypersonnels.some((standbyschedule) => new Date(standbyschedule.day).getTime() == new Date(addScheduleData?.date).getTime() && standbyschedule.personnelId === addScheduleData?.personnel._id)}
-                                            checked={addScheduleData?.service === 'standby'}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setAddScheduleData(prev => ({ ...prev, service: 'standby' }));
-                                                } else {
-                                                    setAddScheduleData(prev => ({ ...prev, service: '' }));
-                                                }
-                                            }} className="peer sr-only"
-                                        />
-                                        <div className="h-6 w-11 peer-checked:bg-amber-600/40  transition-[colors] origin-left rounded-full bg-gray-3  dark:bg-amber" />
-                                        <div className={cn("absolute top-1 left-1 flex size-4 items-center justify-center rounded-full bg-white shadow-switch-1 transition-all duration-200 peer-checked:translate-x-5 peer-checked:[&_.check-icon]:block peer-checked:[&_.uncheck-icon]:hidden  shadow-switch-2")}>
-                                            <IoMoonOutline className='uncheck-icon text-amber-600' size={11} />
-                                            <IoMoon className='check-icon hidden text-amber-600' size={11} />
-                                        </div>
-                                    </label>
-                                </div>
+            <Modal isOpen={addScheduleData && userDetails.role !== 'Operational Manager'} >
+                <div className="border border-neutral-300 rounded-lg w-full max-w-4xl mx-auto">
+                    <div className="px-8 py-4 border-b border-neutral-300">
+                        <h2 className="text-xl font-semibold">Shift Details</h2>
+                    </div>  
+                    <div className="mx-6 p-3 space-y-4">
+                        {/* Date and User ID Row */}
+                        <div className="flex flex-row justify-between gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Date:</label>
+                                <p>{new Date(addScheduleData?.date).toLocaleDateString()}</p>
                             </div>
-                            <div className='relative flex flex-col justify-center items-center p-4 w-full'>
-                                <div className='flex absolute top-0 left-0 justify-center bg-gray-300/70 w-full text-sm'>Day-off</div>
-                                <div className='z-5 relative cursor-pointer mt-4'>
-                                    <label htmlFor="voluntary-day-off" className="cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            id="voluntary-day-off" // Add an ID
-                                            checked={addScheduleData?.service === "Voluntary-Day-off"}
-                                            className="peer sr-only"
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    console.log('Checkbox checked:', e.target.checked);
-                                                    setAddScheduleData(prev => ({ ...prev, service: 'Voluntary-Day-off' }));
-                                                } else {
-                                                    setAddScheduleData(prev => ({ ...prev, service: '' }));
-                                                }
-                                            }}
-                                        />
-                                        <div className="h-6 w-11 peer-checked:bg-sky-600/40  transition-[colors] origin-left rounded-full bg-gray-3  dark:bg-sky" />
-                                        <div className={cn("absolute top-1 left-1 flex size-4 items-center justify-center rounded-full bg-white shadow-switch-1 transition-all duration-200 peer-checked:translate-x-5 peer-checked:[&_.check-icon]:block peer-checked:[&_.uncheck-icon]:hidden  shadow-switch-2")}>
-                                            <RiZzzFill className='uncheck-icon text-sky-600' size={11} />
-                                            <RiZzzFill className='check-icon hidden text-sky-600' size={11} />
-                                        </div>
-                                    </label>
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">User ID:</label>
+                                <p>{addScheduleData?.user_ID}</p>
                             </div>
-                        </div>}
-
-                        {addScheduleData?.error && <div className='m-3 text-sm p-1 md:p-2 rounded-md bg-red-200 border border-red-400 text-red-400 flex justify-center items-center gap-3'><div className='text-xs font-bold p-2 flex justify-center items-center bg-red-500 h-3 w-3 text-white rounded-full'>!</div>Ratecard unavailable for selected service</div>}
+                        </div>  
+                        {/* Shift Time Row */}
+                        <div className="flex flex-row justify-between gap-4">
+                            <div className="flex flex-col">
+                                <p className="text-sm font-medium text-gray-700">Shift Start Time:</p>
+                                <input
+                                    value={
+                                        addScheduleData?.start_trip_checklist?.time_and_date 
+                                            ? new Date(addScheduleData?.start_trip_checklist?.time_and_date).toLocaleString('en-UK')
+                                            : addScheduleData?.trip_status == 'in_progress' ? '--Shift in progress--' : '--Not Started--'
+                                        }
+                                    disabled
+                                    className="mt-1 px-3 py-2 bg-gray-100 border border-neutral-200 rounded-md text-sm"
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <p className="text-sm font-medium text-gray-700">Shift End Time:</p>
+                                <input
+                                    value={
+                                        addScheduleData?.end_trip_checklist?.time_and_date
+                                            ? new Date(addScheduleData.end_trip_checklist.time_and_date).toLocaleString('en-UK')
+                                            : addScheduleData?.trip_status == 'in_progress' ? '--Shift in progress--' : '--Not Started--'
+                                        }
+                                    disabled
+                                    className="mt-1 px-3 py-2 bg-gray-100 border border-neutral-200 rounded-md text-sm"
+                                />
+                            </div>
+                        </div>  
+                        <ImageViewer
+                            userId={addScheduleData?.user_ID}
+                            date={new Date(addScheduleData?.date)}
+                            checklist={addScheduleData?.start_trip_checklist}
+                            title="Shift Start"
+                        />
+                        <ImageViewer
+                            userId={addScheduleData?.user_ID}
+                            date={new Date(addScheduleData?.day)}
+                            checklist={addScheduleData?.end_trip_checklist}
+                            title="Shift End"
+                        />
+                    </div>  
+                    {/* Footer */}
+                    <div className="px-6 py-2 border-t border-neutral-300 flex justify-end">
+                        <button
+                            className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+                            onClick={() => { setAddScheduleData(null); }}
+                        >
+                            Close
+                        </button>
                     </div>
-                </div>
-                <div className='border-t border-neutral-300 p-3 flex justify-evenly'>
-                    <button onClick={() => {
-                        if (addScheduleData?.service === 'standby') {
-                            handleStandbyToggle(addScheduleData?.personnel, addScheduleData?.date)
-                            setAddScheduleData(null)
-                        }
-                        else {
-                            handleAddSchedule()
-                        }
-
-                    }} disabled={addScheduleData?.error || !addScheduleData?.service} className='text-sm rounded-md border border-green-600 text-white bg-green-600 px-3 py-1 hover:bg-white hover:text-green-600 disabled:bg-stone-300 disabled:text-stone-200 disabled:border-stone-200 disabled:inset-shadow-sm disabled:hover:text-white' >Add</button>
-                    <button className='text-sm rounded-md border border-red-600 text-white bg-red-600 px-3 py-1 hover:bg-white hover:text-red-600' onClick={() => setAddScheduleData(null)}>Cancel</button>
                 </div>
             </Modal>
         </>
