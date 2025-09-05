@@ -1,5 +1,5 @@
 import chroma from "chroma-js";
-import { applyDarkMode } from "../pages/ApplicationSettings/ApplicationSettings";
+// import { applyDarkMode } from "../pages/ApplicationSettings/ApplicationSettings";
 
 const applyThemeFromStorage = () => {
     const baseColor = localStorage.getItem("primary-color")
@@ -27,4 +27,4 @@ const applyThemeFromStorage = () => {
 
 applyThemeFromStorage();
 // applyDarkMode(localStorage.getItem("theme") || "light");
-applyDarkMode("light")
+// applyDarkMode("light")

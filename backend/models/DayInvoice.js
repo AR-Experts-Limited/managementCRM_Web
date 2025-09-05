@@ -9,18 +9,10 @@ const dayInvoiceSchema = new mongoose.Schema({
     role: { type: String, required: true },
     week: { type: String, required: true },
     total: { type: Number, required: true },
-    addedBy: { type: Object },
-    modifiedBy: { type: Object },
-    modifiedOn: { type: Date },
-    invoiceDetails: {
-        invoiceGeneratedBy: { type: String },
-        invoiceGeneratedOn: { type: String },
-        invoiceDoc: { type: String },
-    },
     comments: { type: Object },
     invoiceNumber: { type: Number },
     referenceNumber: { type: Number }
-});
+}, { timestamps: true });
 
 const DayInvoice = mongoose.model('DayInvoice', dayInvoiceSchema);
 

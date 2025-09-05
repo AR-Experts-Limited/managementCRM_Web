@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { initializeChangeStreams } = require('../utils/monitorChanges');
 
 const connections = {}; // Store connections
 
@@ -17,11 +18,9 @@ const getDatabaseConnection = async (dbName) => {
         }
       );
 
-      await conn.asPromise();
-
       if (dbName !== "ClientMapDB") {
         conn.on("connected", () => {
-          // initializeChangeStreams(conn);
+          initializeChangeStreams(conn);
         });
       }
 
