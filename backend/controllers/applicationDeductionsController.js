@@ -39,7 +39,7 @@ const signDeduction = async (req, res) => {
         // Prepare dates and template
         const addedOnDate = moment(existingDeduction.addedBy?.addedOn).tz('Europe/London').format('DD/MM/YYYY');
         const deductionDate = moment(existingDeduction.date).tz('Europe/London').format('DD/MM/YYYY');
-        const templateUrl = 'https://mcrm.s3.eu-west-2.amazonaws.com/public/deduction_template.pdf';
+        const templateUrl = 'https://mcrm.s3.eu-west-2.amazonaws.com/templates/mcrm_deduction_template.pdf';
         
         const templateResponse = await axios.get(templateUrl, { responseType: 'arraybuffer' });
         const pdfDoc = await PDFDocument.load(templateResponse.data);

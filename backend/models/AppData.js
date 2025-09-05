@@ -1,13 +1,15 @@
-// models/appdata.js
 const mongoose = require('mongoose');
 
 const AppDataSchema = new mongoose.Schema({
   personnel_id: { type: String, required: true },
   user_ID: { type: String, required: true },
+  acknowledged: { type: Boolean, default: false },
+  week: { type: String },
+  addedBy: { type: Object },
   trip_status: {
     type: String,
-    enum: ['in_progress', 'completed'],
-    default: 'in_progress',
+    enum: ['not_started', 'in_progress', 'completed'],
+    default: 'not_started',
   },
   date: { type: Date, default: Date.now },
   start_trip_checklist: {
@@ -17,7 +19,7 @@ const AppDataSchema = new mongoose.Schema({
       longitude: { type: Number },
     },
     signed: { type: Boolean, default: false },
-    signature: { type: String }, // Added signature field
+    signature: { type: String }, 
     images: {
       front: { type: String },
       back: { type: String },
@@ -39,7 +41,7 @@ const AppDataSchema = new mongoose.Schema({
       longitude: { type: Number },
     },
     signed: { type: Boolean, default: false },
-    signature: { type: String }, // Added signature field
+    signature: { type: String },
     images: {
       e_front: { type: String },
       e_back: { type: String },
