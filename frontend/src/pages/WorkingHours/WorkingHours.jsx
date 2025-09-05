@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState , useRef} from 'react';
 import axios from 'axios';
 import { FixedSizeList } from 'react-window';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchPersonnels, updatePersonnelDoc } from '../../features/personnels/personnelSlice';
+import { fetchPersonnels } from '../../features/personnels/personnelSlice';
 import moment from 'moment';
 import Modal from '../../components/Modal/Modal';
 import DatePicker from '../../components/Datepicker/Datepicker';
@@ -19,6 +19,26 @@ import "flatpickr/dist/flatpickr.min.css";
 import { cn } from "../../lib/utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// --- helpers ---
+const getDateFromMaybeMongo = (v) => {
+  // supports { $date: ISO } or ISO string / Date
+  if (!v) return null;
+  if (v?.$date) return new Date(v.$date);
+  return new Date(v);
+};
+
+const toStartOfDay = (d) => {
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  return x;
+};
+
+const toEndOfDay = (d) => {
+  const x = new Date(d);
+  x.setHours(23,59,59,999);
+  return x;
+};
 
 const DatePickerLocal = ({ id, label, iconPosition, name, value, minDate, maxDate, required, onChange, error, disabled }) => {
     const flatpickrRef = useRef(null);
@@ -107,30 +127,26 @@ const WorkingHours = () => {
     const { userDetails } = useSelector((state) => state.auth);
     const { list: sites, siteStatus } = useSelector((state) => state.sites);
     const { list: roles, roleStatus } = useSelector((state) => state.roles);
+    const personnelsByRole = useSelector((state) => state.personnels.byRole);
 
     const [selectedRole, setSelectedRole] = useState('');
     const [selectedWeek, setSelectedWeek] = useState('');
     const [selectedDate, setSelectedDate] = useState('');
-    const [dynamicTimeFrame, setDynamicTimeFrame] = useState({ startDay: null, endDay: null });
     const [invoice, setInvoice] = useState([]);
     const [filteredInvoices, setFilteredInvoices] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchColumn, setSearchColumn] = useState('personnelName');
-    const [editingRowIndex, setEditingRowIndex] = useState(null);
-    const [editedComment, setEditedComment] = useState("");
     const [toastOpen, setToastOpen] = useState(null);
     const [repopulate, setRepopulate] = useState(false);
-    const [searchPersonnel, setSearchPersonnel] = useState("");
     const [rangeType, setRangeType] = useState("weekly");
-    const [personnels, setPersonnels] = useState([]);
+
+    const [personnelsList, setPersonnelsList] = useState([]);
 
     const columns = {
         "Personnel Name": "personnelName",
         "Role": "role",
         "Date": "date",
-        "Main Service": "mainService",
-        "Additional Service": "additionalService",
-        "Comments": "comments"
+        "Hours Worked": "comments"
     }
 
     const [displayColumns, setDisplayColumns] = useState(columns);
@@ -138,7 +154,7 @@ const WorkingHours = () => {
     useEffect(() => {
         if (siteStatus === 'idle') dispatch(fetchSites())
         if (roleStatus === 'idle') dispatch(fetchRoles());
-        if (roleStatus === 'idle') dispatch(fetchPersonnels());
+        dispatch(fetchPersonnels());
     }, [siteStatus, roleStatus, dispatch]);
 
     useEffect(() => {
@@ -148,89 +164,120 @@ const WorkingHours = () => {
         setSelectedDate(currentDate);
     }, []);
 
-    const fetchInvoices = async () => {
-        try {
-            //const params = selectedDate
-            //    ? { startDate: dynamicTimeFrame.startDay, endDate: dynamicTimeFrame.endDay, personnels: personnels.map(d => d._id) }
-            //    : { serviceWeek: selectedWeek, personnels: personnels.map(d => d._id) };
+    // keep personnels list in sync with role
+    useEffect(() => {
+        if (!personnelsByRole) return;
+        const list = selectedRole
+          ? (personnelsByRole[selectedRole] || [])
+          : Object.values(personnelsByRole).flat();
+        setPersonnelsList(list);
+    }, [personnelsByRole, selectedRole]);
 
-            const params = rangeType == "daily" ? { startDate: selectedDate, endDate: selectedDate, role: selectedRole }
-                                        : { serviceWeek: selectedWeek, role: selectedRole };
-            const res = await fetch(`${API_BASE_URL}/api/dayinvoice/workinghours`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params)
+    const getWeekRange = (weekStr) => {
+        const m = moment(weekStr, 'YYYY-[W]WW');
+        const start = m.startOf('isoWeek').toDate();
+        const end = m.endOf('isoWeek').toDate();
+        return { start, end };
+    };
+
+    const buildDateWindow = () => {
+        if (rangeType === 'daily' && selectedDate) {
+            return { start: toStartOfDay(selectedDate), end: toEndOfDay(selectedDate) };
+        }
+        const { start, end } = getWeekRange(selectedWeek);
+        return { start: toStartOfDay(start), end: toEndOfDay(end) };
+    };
+
+    const computeActualHours = (rec) => {
+        const start = getDateFromMaybeMongo(rec?.start_trip_checklist?.time_and_date);
+        const end = getDateFromMaybeMongo(rec?.end_trip_checklist?.time_and_date);
+        if (!start || !end) return 0;
+        let hours = (end.getTime() - start.getTime()) / 3600000;
+        if (rec?.end_trip_checklist?.one_hour_break) hours -= 1;
+        return Math.max(0, Number.isFinite(hours) ? hours : 0);
+    };
+
+    const fetchAppData = async () => {
+        try {
+            const ids = personnelsList.map(p => p._id);
+            if (ids.length === 0) {
+                setInvoice([]);
+                setFilteredInvoices([]);
+                return;
+            }
+
+            const { start, end } = buildDateWindow();
+
+            const res = await axios.post(`${API_BASE_URL}/api/live-ops/fetchappdata`, {
+                personnelId: ids,
+                startDay: new Date(moment(start).format('YYYY-MM-DD')),
+                endDay: new Date(moment(end).format('YYYY-MM-DD')),
             });
-            const rawData = await res.json();
-            const processedData = preprocessInvoices(rawData);
+
+            const rawData = res.data.filter(row => row.trip_status == 'completed') || [];
+            const processedData = preprocessAppData(rawData);
             setInvoice(processedData);
             filterAndSetInvoices(processedData);
             setRepopulate(true);
         } catch (error) {
-            console.error('Error fetching invoices', error);
+            console.error('Error fetching appData', error);
+            setToastOpen({ content: 'Failed to load working hours.' });
+            setTimeout(() => setToastOpen(null), 3000);
         }
     };
 
     useEffect(() => {
-        if(selectedRole && (selectedWeek || selectedDate))
-            fetchInvoices();
-    }, [selectedRole, selectedWeek, selectedDate, rangeType]);
+        if ((selectedRole !== undefined) && (selectedWeek || selectedDate)) {
+            fetchAppData();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedRole, selectedWeek, selectedDate, rangeType, personnelsList]);
 
-    const preprocessInvoices = (data) => {
+    const preprocessAppData = (data) => {
+        // Map over AppData records and normalize into the table row shape used by this component
         return data.map(item => {
-            const actualHours = (item.shiftTimes.startTime && item.shiftTimes.endTime)
-                ? (new Date(item.shiftTimes.endTime) - new Date(item.shiftTimes.startTime)) / 3600000
-                : 0;
-            const expectedHours = serviceHoursLookup.get(item.mainService) ?? 9;
-        
+            const person = personnelsList.find(p => p._id === item.personnel_id);
+            const personName = person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() : 'Unknown';
+            const role = person?.role || '-';
+
+            const actualHours = computeActualHours(item);
+            const expectedHours = 9; // default target when schedule info not present
+
+            const hasBothTimes = !!(item?.start_trip_checklist?.time_and_date && item?.end_trip_checklist?.time_and_date);
+
+            const hoursWorked = (item?.end_trip_checklist?.time_and_date - item?.start_trip_checklist?.time_and_date)/3600000;
+
             return {
-                ...item,
-                comments: item?.comments?.comment ?? (
-                    (item.shiftTimes.startTime && item.shiftTimes.endTime)
-                        ? (actualHours > expectedHours
-                            ? "Working hours exceeded planned duration"
-                            : "Working hours within planned duration")
-                        : "Login/Logout times not recorded"
-                ),
-                additionalService: item?.additionalServiceDetails?.service || "-",
-                date: item.date ? new Date(item.date).toLocaleDateString('en-UK') : ""
+                _id: item._id,
+                personnelName: personName,
+                role: role,
+                date: item.date ? new Date(item.date).toLocaleDateString('en-UK') : '',
+                hoursWorked: actualHours,
+                shiftTimes: {
+                    startTime: getDateFromMaybeMongo(item?.start_trip_checklist?.time_and_date)?.toISOString() || null,
+                    endTime: getDateFromMaybeMongo(item?.end_trip_checklist?.time_and_date)?.toISOString() || null,
+                    oneHourBreak: !!item?.end_trip_checklist?.one_hour_break,
+                    actualHours,
+                },
             };
         });
     };
 
     const filterAndSetInvoices = (data) => {
         const filtered = data.filter(item => {
-            const matchesSearch = item[searchColumn]?.toLowerCase().includes(searchQuery.toLowerCase());
+            const v = (item[searchColumn] ?? '').toString().toLowerCase();
+            const matchesSearch = v.includes((searchQuery || '').toLowerCase());
             const matchesRole = selectedRole === "" || item.role === selectedRole;
             return matchesSearch && matchesRole;
         });
         setFilteredInvoices(filtered);
     };
 
-    const updateComments = async (invoiceId, comment) => {
-        try {
-            const commentObj = {
-                comment: comment,
-                addedBy: { name: userDetails.userName, email: userDetails.email, role: userDetails.role },
-                addedOn: new Date(),
-            }
-            const response = await axios.put(`${API_BASE_URL}/api/dayinvoice/comments`, commentObj, {
-                params: {
-                    invoiceID: invoiceId
-                }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Failed to update comments:", error);
-        }
-    }; 
-
     const Row = ({ index, style }) => {
         const item = filteredInvoices[index];
-        const actualHours = item.shiftTimes ? (new Date(item.shiftTimes.endTime) - new Date(item.shiftTimes.startTime)) / 3600000 : 0;
-        const expectedHours = serviceHoursLookup.get(item.mainService) ?? 9;
-        //const defaultComment = item?.comments?.comment ?? item.shiftTimes ? (actualHours > expectedHours ? "Working hours exceeded planned duration" : "Working hours within planned duration") : "Login/Logout times not recorded";
-        const defaultComment = item?.comments || "Login/Logout times not recorded";
+        const actualHours = item?.shiftTimes?.actualHours ?? 0;
+        const expectedHours = 9;
+        const defaultComment = item?.hoursWorked;
 
         const [localEditing, setLocalEditing] = useState(false);
         const [localComment, setLocalComment] = useState(defaultComment);
@@ -245,7 +292,7 @@ const WorkingHours = () => {
 
           setInvoice(updatedInvoices);
           setFilteredInvoices(updatedFiltered);
-          await updateComments(item._id, localComment);
+          // Intentionally not persisting comments to backend (no endpoint specified for appData comments)
           setLocalEditing(false);
         };
 
@@ -259,7 +306,7 @@ const WorkingHours = () => {
                 if (col === "additionalService") {
                   return (
                     <div key={item._id} className="flex-1 flex items-center justify-center p-3 text-center min-w-32 text-sm border-b border-gray-300">
-                      { item.additionalServiceDetails ? item.additionalServiceDetails.service : '-' }
+                      -
                     </div>
                   );
                 } else if (col === "comments") {
@@ -276,13 +323,7 @@ const WorkingHours = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <span className={`flex-1 text-left ${
-                                          (item.shiftTimes.startTime && item.shiftTimes.endTime)
-                                            ? actualHours > expectedHours
-                                              ? 'text-red-500'
-                                              : 'text-green-600'
-                                            : ''
-                                        }`}>
+                                        <span className={`flex-1`}>
                                             {localComment}
                                         </span>
                                         {actualHours > expectedHours && (
