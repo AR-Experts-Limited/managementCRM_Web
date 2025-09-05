@@ -253,8 +253,8 @@ const WorkingHours = () => {
         const end = getDateFromMongo(rec?.end_trip_checklist?.time_and_date);
         if (!start || !end) return 0;
         let hours = (end.getTime() - start.getTime()) / 3600000;
-        if (rec?.end_trip_checklist?.one_hour_break) hours -= 1;
-        return Math.max(0, Number.isFinite(hours) ? hours : 0);
+        const val = Math.max(0, Number.isFinite(hours) ? hours : 0);
+        return Number(val.toFixed(2));
     };
 
     const fetchAppData = async () => {
