@@ -152,9 +152,57 @@ const login = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    const User = req.db.model('User',require('../models/User').schema);
+    const origin = req.headers['origin'];
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
+
+    try {
+      const user = await User.findOne({ email });
+      if (!user) return res.status(404).json({ message: 'User not found. Please Check you Email ID' });
+
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+      user.resetPasswordToken = hashedToken;
+      user.resetPasswordExpiry = Date.now() + 15 * 60 * 1000; // 15 mins expiry
+      await user.save();
+
+      const resetLink = `${origin}/reset-password/${resetToken}`;
+      //console.log(origin);
+
+      res.status(200).json({ resetLink, message: 'Reset link generated successfully.' });
+    }catch (error){
+      console.error('Error Resetting Password', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+}
+
+const resetPassword = async (req, res) => {
+    const User = req.db.model('User',require('../models/User').schema);
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex'); 
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: { $gt: Date.now() },
+    }); 
+
+    if (!user) return res.status(400).json({ message: 'Invalid or expired reset link.' });  
+    user.password = await bcrypt.hash(req.body.password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiry = undefined;   
+    await user.save();  
+
+    // Send confirmation email (optional but recommended)
+    res.status(200).json({ message: 'Your password has been reset successfully.' });
+}
+
 module.exports = {
     checkCompany,
     checkOtpStatus,
     verifyOtp,
     login,
+    forgotPassword,
+    resetPassword
 };

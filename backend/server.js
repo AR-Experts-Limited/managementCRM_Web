@@ -18,6 +18,9 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', 'https://erp-rainaltd.bizalign.co.uk', 'https://app.bizalign.co.uk'],  // Change this to allow requests from your frontend
   credentials: true,
 }));
+app.get('/api/stream', (req, res) => {
+  registerClient(req, res);  // Register this client to listen for events
+});
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -117,10 +120,6 @@ const upload = multer({
       cb(null, `${user_ID}/${file.fieldname}/${getFormattedDateTime()}/${file.originalname}`);
     },
   }),
-});
-
-app.get('/api/stream', (req, res) => {
-  registerClient(req, res);  // Register this client to listen for events
 });
 
 app.use('/uploads', express.static('uploads'));

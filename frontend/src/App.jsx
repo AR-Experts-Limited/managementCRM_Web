@@ -26,6 +26,8 @@ import DailyInvoice from './pages/Invoice/DailyInvoice/DailyInvoice';
 import WeeklyInvoice from './pages/Invoice/WeeklyInvoice/WeeklyInvoice';
 import ManageUsers from './pages/ManageUsers/ManageUsers';
 import SchedulePlanner from './pages/SchedulePlanner/SchedulePlanner';
+import ResetPasswordRequest from './pages/Login/ResetPasswordRequest';
+import ResetPasswordForm from './pages/Login/ResetPasswordForm';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -33,7 +35,7 @@ function App() {
   const [sidebarIsOpen, setSidebarIsOpen] = useState(0);
   const { userDetails } = useSelector((state) => state.auth);
   const location = useLocation();
-  const hideLayout = location.pathname === '/login' || location.pathname === '/';
+  const hideLayout = location.pathname === '/login' || location.pathname === '/' || location.pathname === '/reset-password' || location.pathname.startsWith('/reset-password');
   //const personnelsLoading = useSelector((state) => state.personnels.personnelStatus);
   const sitesLoading = useSelector((state) => state.sites.siteStatus);
   const rolesLoading = useSelector((state) => state.roles.roleStatus);
@@ -104,6 +106,8 @@ function App() {
 
             : (<Routes>
               <Route path="/" element={<Login />} /> {/* Temporarily placed Login in place of Landing Page */}
+              <Route path="/reset-password" element={<ResetPasswordRequest />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordForm />} />
               <Route path="/login" element={<Login />} />
               {routes.map(({ path, name, component: Component }) => (
                 <Route

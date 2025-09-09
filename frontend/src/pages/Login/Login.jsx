@@ -155,7 +155,7 @@ const Login = () => {
 
                         <button onClick={handleLogin} className='flex justify-center items-center text-white rounded-lg w-20 h-8 bg-[#006173]/80 hover:bg-[#006173]/50 shadow-md'>{loginLoad ? <div className="w-4 h-4 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
                             : 'Sign In'}</button>
-                        <button className='text-sm dark:text-stone-300 text-white mb-5 hover:scale-104 transition-all duration-200'>Forgot password?</button>
+                        <button onClick={() => navigate('/reset-password')} className='text-sm dark:text-stone-300 text-white mb-5 hover:scale-104 transition-all duration-200'>Forgot password?</button>
                     </div>
                 </>
 

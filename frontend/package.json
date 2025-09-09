@@ -11,6 +11,7 @@
     "production_build": "node ./src/scripts/setVersion.cjs && vite build && git add . && git commit -m 'build files'"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@flaticon/flaticon-uicons": "^3.3.1",
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@radix-ui/react-tooltip": "^1.2.6",
