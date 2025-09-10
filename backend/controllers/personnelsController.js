@@ -486,11 +486,14 @@ const newUpdate = async (req, res) => {
 
   // Store original details for comparison
   const originalVatDetails = { ...(personnel.vatDetails ?? {}) };
+  const originalCompanyVatDetails = { ...(personnel.companyVatDetails ?? {}) };
 
   // Check if relevant fields have changed
   const vatChanged =
     (originalVatDetails?.vatNo !== personnelData.vatDetails?.vatNo ||
-      originalVatDetails?.vatEffectiveDate !== personnelData.vatDetails?.vatEffectiveDate);
+      originalVatDetails?.vatEffectiveDate !== personnelData.vatDetails?.vatEffectiveDate) ||
+    (originalCompanyVatDetails?.vatNo !== personnelData.companyVatDetails?.vatNo ||
+      originalCompanyVatDetails?.vatEffectiveDate !== personnelData.companyVatDetails?.vatEffectiveDate);
 
   // If no relevant changes, proceed with update
   if (!vatChanged) {
@@ -544,6 +547,8 @@ const newUpdate = async (req, res) => {
   const vatDates = vatChanged ? [
     originalVatDetails?.vatEffectiveDate ? new Date(originalVatDetails.vatEffectiveDate) : null,
     personnelData.vatDetails?.vatEffectiveDate ? new Date(personnelData.vatDetails.vatEffectiveDate) : null,
+    originalCompanyVatDetails?.vatEffectiveDate ? new Date(originalCompanyVatDetails.vatEffectiveDate) : null,
+    personnelData.companyVatDetails?.vatEffectiveDate ? new Date(personnelData.companyVatDetails.vatEffectiveDate) : null,
   ].filter(Boolean) : [];
 
   const allDates = [...vatDates];
@@ -583,9 +588,6 @@ const newUpdate = async (req, res) => {
     const invDate = new Date(invoice.date);
     let newTotal = invoice.total;
 
-    if(personnelData?.vatDetails?.vatNo && personnelData?.vatDetails?.vatEffectiveDate <= invDate)
-      newTotal = 1.2 * newTotal;
-
     if (newTotal < 0) {
       negativeInvoices.push({
         personnelName: `${personnel.firstName} ${personnel.lastName}`,
@@ -618,11 +620,12 @@ const newUpdate = async (req, res) => {
   const weeklyInvoices = await WeeklyInvoice.find({
     personnelId: req.params.id,
     serviceWeek: { $in: affectedServiceWeeks },
-  }).populate('personnelId').populate('installments').lean();
+  }).populate('personnelId').lean();
 
   const isVatApplicable = (date, personnelData) => {
     return (
-      (personnelData.vatDetails?.vatNo && date >= new Date(personnelData.vatDetails.vatEffectiveDate))
+      (personnelData.vatDetails?.vatNo && date >= new Date(personnelData.vatDetails.vatEffectiveDate)) ||
+      (personnelData.companyVatDetails?.vatNo && date >= new Date(personnelData.companyVatDetails.vatEffectiveDate))
     );
   };
 
@@ -715,127 +718,6 @@ const newUpdate = async (req, res) => {
     let weeklyBaseTotal = 0;
     let weeklyVatTotal = 0;
 
-    const updateForMain = [];
-    const updateForAdditional = [];
-
-    for (const invoice of invoices) {
-      const invoiceId = invoice._id.toString();
-      const invDate = new Date(invoice.date);
-      const newVehicleType = getPersonnelTypeForDate(updatedPersonnel, invDate);
-
-      const mainRateCard = await rateCardFinder(RateCard, invDate, serviceWeek, invoice.mainService, updatedPersonnel);
-      console.log('checkpoint for main:', mainRateCard)
-      if (!mainRateCard && invoice.mainService !== 'Route Support') continue;
-
-      const oldIncentiveRate = round2(invoice.incentiveDetailforMain?.reduce((sum, inc) => sum + Number(inc.rate || 0), 0) || 0);
-      const oldDeductionTotal = invoice.deductionDetail?.reduce((sum, ded) => sum + round2(ded.rate), 0) || 0;
-      const newIncentiveRate = oldIncentiveRate;
-      const newDeductionTotal = oldDeductionTotal;
-
-      const newTotal = round2(
-        invoice.total
-        - round2(invoice.serviceRateforMain || 0)
-        - round2(invoice.byodRate || 0)
-        - round2(invoice.calculatedMileage || 0)
-        - oldIncentiveRate
-        + oldDeductionTotal
-        + round2(mainRateCard?.serviceRate || 0)
-        + round2(mainRateCard?.byodRate || 0)
-        + round2(invoice?.miles * (mainRateCard?.mileage || 0))
-        + newIncentiveRate
-        - newDeductionTotal
-      );
-
-      updateForMain.push({
-        updateOne: {
-          filter: { _id: invoice._id },
-          update: {
-            $set: {
-              personnelVehicleType: newVehicleType,
-              serviceRateforMain: round2(mainRateCard?.serviceRate || 0),
-              rateCardIdforMain: mainRateCard?._id ? new mongoose.Types.ObjectId(mainRateCard._id) : null,
-              byodRate: round2(mainRateCard?.byodRate || 0),
-              mileage: round2(mainRateCard?.mileage || 0),
-              calculatedMileage: round2(invoice.miles * (mainRateCard?.mileage || 0)),
-              total: newTotal,
-            },
-          },
-        },
-      });
-
-      let additionalRateCard = null;
-      if (invoice.additionalServiceDetails?.service) {
-
-        additionalRateCard = await rateCardFinder(RateCard, invDate, serviceWeek, invoice.additionalServiceDetails.service, updatedPersonnel);
-        if (additionalRateCard) {
-          const oldAdditionalIncentiveRate = round2(invoice.incentiveDetailforAdditional?.reduce((sum, inc) => sum + Number(inc.rate || 0), 0) || 0);
-
-          const newAdditionalTotal = round2(
-            newTotal
-            - round2(invoice.additionalServiceDetails.serviceRate || 0)
-            - round2(invoice.additionalServiceDetails.byodRate || 0)
-            - round2(invoice.additionalServiceDetails.calculatedMileage || 0)
-            - oldAdditionalIncentiveRate
-            + round2(additionalRateCard?.serviceRate || 0)
-            + round2(additionalRateCard?.byodRate || 0)
-            + round2(invoice.additionalServiceDetails.miles * (additionalRateCard?.mileage || 0))
-            + round2(invoice.incentiveDetailforAdditional?.reduce((sum, inc) => sum + Number(inc.rate || 0), 0) || 0)
-          );
-
-          updateForAdditional.push({
-            updateOne: {
-              filter: { _id: invoice._id },
-              update: {
-                $set: {
-                  'additionalServiceDetails.serviceRate': round2(additionalRateCard?.serviceRate || 0),
-                  'additionalServiceDetails.byodRate': round2(additionalRateCard?.byodRate || 0),
-                  'additionalServiceDetails.mileage': round2(additionalRateCard?.mileage || 0),
-                  'additionalServiceDetails.calculatedMileage': round2(invoice.additionalServiceDetails.miles * (additionalRateCard?.mileage || 0)),
-                  rateCardIdforAdditional: additionalRateCard?._id ? new mongoose.Types.ObjectId(additionalRateCard._id) : null,
-                  serviceRateforAdditional: invoice.additionalServiceApproval === 'Approved' ? round2(
-                    (additionalRateCard?.serviceRate || 0) +
-                    (additionalRateCard?.byodRate || 0) +
-                    (invoice.additionalServiceDetails.miles * (additionalRateCard?.mileage || 0)) +
-                    round2(invoice.incentiveDetailforAdditional?.reduce((sum, inc) => sum + Number(inc.rate || 0), 0) || 0)
-                  ) : 0,
-                  total: invoice.additionalServiceApproval === 'Approved' ? newAdditionalTotal : newTotal,
-                },
-              },
-            },
-          });
-
-          // Update total for weekly calculation to include additional service
-          invBaseTotal = round2(
-            (mainRateCard?.serviceRate || 0) +
-            (mainRateCard?.byodRate || 0) +
-            (invoice.miles * (mainRateCard?.mileage || 0)) +
-            newIncentiveRate -
-            newDeductionTotal +
-            (additionalRateCard?.serviceRate || 0) +
-            (additionalRateCard?.byodRate || 0) +
-            (invoice.additionalServiceDetails.miles * (additionalRateCard?.mileage || 0)) +
-            round2(invoice.incentiveDetailforAdditional?.reduce((sum, inc) => sum + Number(inc.rate || 0), 0) || 0)
-          );
-        } else {
-          invBaseTotal = round2(newTotal);
-        }
-      } else {
-        invBaseTotal = round2(newTotal);
-      }
-
-      weeklyBaseTotal += invBaseTotal;
-      if (isVatApplicable(invDate, updatedPersonnel)) {
-        weeklyVatTotal += round2(invBaseTotal * 0.2);
-      }
-    }
-
-    if (updateForMain.length > 0) {
-      await DayInvoice.bulkWrite(updateForMain);
-    }
-    if (updateForAdditional.length > 0) {
-      await DayInvoice.bulkWrite(updateForAdditional);
-    }
-
     // Fetch WeeklyInvoice to get additionalChargesDetail
     const weeklyInvoice = await WeeklyInvoice.findOne({ personnelId: req.params.id, serviceWeek }).lean();
     if (!weeklyInvoice) continue;
@@ -886,53 +768,7 @@ const newUpdate = async (req, res) => {
     weeklyVatTotal = round2(weeklyVatTotal);
     const weeklyTotalBeforeInstallments = round2(weeklyBaseTotal + weeklyVatTotal);
 
-    // Restore previous installment deductions
-    const allInstallments = await Installment.find({ personnelId: req.params.id });
-    for (const detail of weeklyInvoice.installmentDetail || []) {
-      const inst = allInstallments.find((i) => i._id.toString() === detail._id?.toString());
-      if (inst && detail.deductionAmount > 0) {
-        inst.installmentPending = round2(inst.installmentPending + detail.deductionAmount);
-        await inst.save();
-      }
-    }
-
-    // Calculate new installment deductions
-    const installmentMap = new Map();
-    let remainingTotal = weeklyTotalBeforeInstallments;
-
-    for (const inst of allInstallments) {
-      const instId = inst._id.toString();
-      if (inst.installmentPending <= 0) continue;
-
-      const deduction = Math.min(
-        round2(inst.spreadRate),
-        round2(inst.installmentPending),
-        remainingTotal
-      );
-      if (deduction <= 0) continue;
-
-      inst.installmentPending = round2(inst.installmentPending - deduction);
-      await inst.save();
-
-      installmentMap.set(instId, {
-        _id: inst._id,
-        installmentRate: round2(inst.installmentRate),
-        installmentType: inst.installmentType,
-        installmentDocument: inst.installmentDocument,
-        installmentPending: round2(inst.installmentPending),
-        deductionAmount: round2(deduction),
-        signed: inst.signed,
-      });
-
-      remainingTotal = round2(remainingTotal - deduction);
-    }
-
-    const mergedInstallments = Array.from(installmentMap.values());
-    const totalInstallmentDeduction = round2(
-      mergedInstallments.reduce((sum, inst) => sum + (inst.deductionAmount || 0), 0)
-    );
-
-    const finalWeeklyTotal = round2(Math.max(0, weeklyTotalBeforeInstallments - totalInstallmentDeduction));
+    const finalWeeklyTotal = weeklyTotalBeforeInstallments;
 
     // Update WeeklyInvoice
     await WeeklyInvoice.updateOne(
@@ -941,8 +777,6 @@ const newUpdate = async (req, res) => {
         $set: {
           vatTotal: weeklyVatTotal,
           total: finalWeeklyTotal,
-          installmentDetail: mergedInstallments,
-          installments: mergedInstallments.map((inst) => inst._id),
         },
       }
     );
