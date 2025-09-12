@@ -13,6 +13,6 @@ router.get('/user/:user_ID', getPersonnelProfile);
 router.patch('/user/:user_ID/documents', upload.single('document'), updatePersonnelDocument);
 
 // NEW ROUTE for location updates
-router.post('/user/location', updateUserLocation);
+router.patch('/user/location', updateUserLocation);
 
 module.exports = router;

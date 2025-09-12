@@ -52,6 +52,9 @@ const applicationProfileRoutes = require('./routes/applicationProfileRoutes');
 const applicationInboxRoutes = require('./routes/applicationInboxRoutes');
 const applicationDeductionsRoutes = require('./routes/applicationDeductions');
 const applicationNotificationsRoutes = require('./routes/applicationNotifications'); 
+const applicationRestrictionsRoutes = require('./routes/applicationRestrictionsRoutes');
+const applicationStatsRoutes = require('./routes/applicationStatsRoutes');
+
 
 
 
@@ -83,6 +86,8 @@ app.use('/api/app-profile', protectApp, applicationProfileRoutes);
 app.use('/api/app-inbox', protectApp, applicationInboxRoutes);
 app.use('/api/app-deductions', protectApp, applicationDeductionsRoutes);
 app.use('/api/app-notifications', applicationNotificationsRoutes); 
+app.use('/api/app-restrictions', protectApp, applicationRestrictionsRoutes);
+app.use('/api/app-stats', protectApp, applicationStatsRoutes);
 
 
 

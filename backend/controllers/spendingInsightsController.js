@@ -18,7 +18,7 @@ const addSpendingInsight = async (req, res) => {
 
   try {
     const { DayInvoice } = getModels(req);
-    const AppData = req.db.model('AppData', require('../models/appdata').schema);
+    const AppData = req.db.model('AppData', require('../models/AppData').schema);
     const Personnel = req.db.model('Personnel', require('../models/Personnel').schema);
 
     // 1) Fetch day invoices

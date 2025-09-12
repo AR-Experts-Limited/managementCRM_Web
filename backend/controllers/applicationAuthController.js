@@ -198,11 +198,75 @@ const resetPassword = async (req, res) => {
     res.status(200).json({ message: 'Your password has been reset successfully.' });
 }
 
+
+/**
+ * Generates a new access token using a valid refresh token.
+ */
+const refreshToken = async (req, res) => {
+    // Load the User model for the correct tenant DB
+    const User = req.db.model('User', require('../models/User').schema);
+    const {
+        token: receivedToken
+    } = req.body;
+
+    if (!receivedToken) {
+        return res.status(401).json({
+            success: false,
+            message: 'Refresh token is required.'
+        });
+    }
+
+    try {
+        // 1. Verify the token is legitimate and not expired
+        const decoded = jwt.verify(receivedToken, process.env.REFRESH_TOKEN_SECRET);
+
+        // 2. Find the user associated with the token
+        const user = await User.findById(decoded.userId);
+
+        // 3. IMPORTANT SECURITY CHECK: Ensure the token from the client matches the one in the DB
+        // This prevents stolen/old refresh tokens from being used.
+        if (!user || user.refreshToken !== receivedToken) {
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden: Invalid refresh token.'
+            });
+        }
+
+        // 4. Generate new tokens (implementing refresh token rotation)
+        const {
+            accessToken,
+            refreshToken: newRefreshToken
+        } = generateTokens(user);
+
+        // 5. Update the stored refresh token with the new one
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        // 6. Send the new tokens to the client
+        res.status(200).json({
+            success: true,
+            accessToken,
+            refreshToken: newRefreshToken,
+        });
+
+    } catch (error) {
+        // This will catch errors from jwt.verify (e.g., expired token, invalid signature)
+        console.error('Error during token refresh:', error.message);
+        return res.status(403).json({
+            success: false,
+            message: 'Forbidden: Invalid or expired refresh token.'
+        });
+    }
+};
+
+
+
 module.exports = {
     checkCompany,
     checkOtpStatus,
     verifyOtp,
     login,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    refreshToken,
 };

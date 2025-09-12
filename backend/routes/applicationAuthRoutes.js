@@ -9,6 +9,7 @@ const {
     login,
     forgotPassword,
     resetPassword
+    refreshToken,
 } = require('../controllers/applicationAuthController');
 
 // --- PUBLIC AUTHENTICATION ROUTES FOR THE MOBILE APP ---
@@ -28,5 +29,9 @@ router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 
 router.post('/reset-password/:token', resetPassword);
+
+// Route for Refreshing Token
+router.post('/refresh-token', refreshToken); 
+
 
 module.exports = router;
