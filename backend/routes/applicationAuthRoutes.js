@@ -8,7 +8,7 @@ const {
     verifyOtp,
     login,
     forgotPassword,
-    resetPassword
+    resetPassword,
     refreshToken,
 } = require('../controllers/applicationAuthController');
 
