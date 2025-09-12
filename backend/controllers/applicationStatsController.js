@@ -4,7 +4,7 @@ const moment = require('moment-timezone');
 const getModels = (req) => ({
     Deduction: req.db.model('Deduction', require('../models/Deduction').schema),
     AdditionalCharges: req.db.model('AdditionalCharges', require('../models/AdditionalCharges').schema),
-    AppData: req.db.model('AppData', require('../models/appdata').schema),
+    AppData: req.db.model('AppData', require('../models/AppData').schema),
 });
 
 const getTripStats = async (req, res) => {

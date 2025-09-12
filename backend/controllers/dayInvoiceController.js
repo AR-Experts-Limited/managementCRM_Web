@@ -275,7 +275,7 @@ const workingHours = async (req, res) => {
 
   try {
     const { DayInvoice } = getModels(req);
-    const AppData = req.db.model('AppData', require('../models/appdata').schema);
+    const AppData = req.db.model('AppData', require('../models/AppData').schema);
 
     // 1. Fetch day invoices
     const dayInvoices = await DayInvoice.find(query);

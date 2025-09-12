@@ -11,8 +11,8 @@ const {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post(
-  '/start-trip',
+router.patch(
+  '/start-trip/:trip_id',
   upload.fields([
     { name: 'front', maxCount: 1 },
     { name: 'back', maxCount: 1 },

@@ -7,6 +7,7 @@ const {
     checkOtpStatus,
     verifyOtp,
     login,
+    refreshToken,
 } = require('../controllers/applicationAuthController');
 
 // --- PUBLIC AUTHENTICATION ROUTES FOR THE MOBILE APP ---
@@ -22,5 +23,9 @@ router.post('/verify-otp', verifyOtp);
 
 // Route for Final Step: Login with email and password
 router.post('/login', login);
+
+// Route for Refreshing Token
+router.post('/refresh-token', refreshToken); 
+
 
 module.exports = router;

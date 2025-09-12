@@ -114,8 +114,11 @@ const upload = multer({
   }),
 });
 
-app.get('/api/stream', (req, res) => {
-  registerClient(req, res);  // Register this client to listen for events
+app.get('/api/stream', protectApp, (req, res) => {
+  // Now, only authenticated requests from the mobile app can connect.
+  // The 'protectApp' middleware will verify the JWT token before allowing
+  // the connection to proceed to 'registerClient'.
+  registerClient(req, res);
 });
 
 app.use('/uploads', express.static('uploads'));
