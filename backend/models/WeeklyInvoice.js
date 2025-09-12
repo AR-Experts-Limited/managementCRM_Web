@@ -37,6 +37,6 @@ const weeklyInvoiceSchema = new mongoose.Schema({
 });
 
 // Compound index for uniqueness
-weeklyInvoiceSchema.index({ driverId: 1, serviceWeek: 1 }, { unique: true });
+weeklyInvoiceSchema.index({ personnelId: 1, week: 1 }, { unique: true });
 
 module.exports = mongoose.model('WeeklyInvoice', weeklyInvoiceSchema);

@@ -15,7 +15,7 @@ const { protectApp } = require('./middleware/applicationAuthMiddleware'); // Mid
 const app = express();
 app.use(dbMiddleware);
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://erp-rainaltd.bizalign.co.uk', 'https://app.bizalign.co.uk'],  // Change this to allow requests from your frontend
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://erp-rainaltd.bizalign-hr.co.uk', 'https://app.bizalign-hr.co.uk'],  // Change this to allow requests from your frontend
   credentials: true,
 }));
 app.get('/api/stream', (req, res) => {
