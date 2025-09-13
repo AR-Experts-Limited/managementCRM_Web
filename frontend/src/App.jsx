@@ -28,6 +28,7 @@ import ManageUsers from './pages/ManageUsers/ManageUsers';
 import SchedulePlanner from './pages/SchedulePlanner/SchedulePlanner';
 import ResetPasswordRequest from './pages/Login/ResetPasswordRequest';
 import ResetPasswordForm from './pages/Login/ResetPasswordForm';
+import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -120,6 +121,7 @@ function App() {
                   }
                 />
               ))}
+              <Route path="/update-password" element={<UpdatePassword />} />
               {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
             </Routes>)}
         </div>
