@@ -21,6 +21,10 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Gauge } from '@mui/x-charts/Gauge';
 import Stack from '@mui/material/Stack';
+import Modal from '../../components/Modal/Modal';
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 
@@ -37,6 +41,8 @@ const Dashboard = () => {
     const [attendance, setAttendance] = useState();
     const [dailyExpenseThisMonth, setDailyExpenseThisMonth] = useState([]);
     const [additionalChargeTotals, setAdditionalChargeTotals] = useState({ addition: 0, deduction: 0 });
+    const [personnelModal, setPersonnelModal] = useState(false);
+    const [siteModal, setSiteModal] = useState(false);
 
     const daysInMonth = moment().daysInMonth();
     const dayLabels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
@@ -264,6 +270,11 @@ const Dashboard = () => {
       if (anyPersonnels) fetchAppData();
     }, [byRole]);
 
+    const countFor = (siteKey, roleName) => {
+      const row = roleSiteCounts.find(r => r.role === roleName);
+      return row?.[siteKey] ?? 0;
+    };
+
     const totalPersonnelsCount = (isOM
       ? filteredPersonnels
       : allPersonnels
@@ -277,159 +288,389 @@ const Dashboard = () => {
         { title: `Overall Expenses for ${moment().format('GGGG-[W]ww')}`, icon: <AiOutlineStock size={20} />, info: '£' + Object.values(totalExp).reduce((sum, exp) => sum + exp, 0)?.toFixed(2) },
         { title: `Overall Revenue for ${moment().format('GGGG-[W]ww')}`, icon: <AiOutlineStock size={20} />, info: '£' + Object.values(totalRevenue).reduce((total, revenue) => total + revenue, 0)?.toFixed(2) },
     ]
+
+    const fmtGBP = (v) => `£${(Number(v) || 0).toFixed(2)}`;
+    const fmtHours = (v) => `${(Number(v) || 0).toFixed(2)} h`;
+
+    const chartSx = {
+      // Hide hard axis lines and ticks
+      '& .MuiChartsAxis-line': { stroke: 'transparent' },
+      '& .MuiChartsAxis-tick': { stroke: 'transparent' },
+    
+      // Axis labels: compact and muted
+      '& .MuiChartsAxis-tickLabel': {
+        fill: 'rgba(15,23,42,.6)', // slate-900 at ~60%
+        fontSize: 12,
+        fontWeight: 600,
+      },
+    
+      // Soft horizontal grid (dashed, low-contrast)
+      '& .MuiChartsGrid-root line': {
+        stroke: 'rgba(148,163,184,.25)', // slate-400 at 25%
+        strokeDasharray: '2 6',
+      },
+    
+      // Bars: rounded and with a subtle hover
+      '& .MuiBarElement-root': { rx: 10 },
+      '& .MuiBarElement-root:hover': { filter: 'brightness(1.05)' },
+    };
+
+    // Which roles to show
+    const roleRows = isOM ? ['On-Site Manager'] : roles.map(r => r.roleName);
+
+    // Which sites to show
+    const siteCols = isOM
+      ? selectedSites.map(k => ({
+          key: k,
+          label: sites.find(s => s.siteKeyword === k)?.siteName || k,
+        }))
+      : sites.map(s => ({ key: s.siteKeyword, label: s.siteName || s.siteKeyword }));
+      
+    // Build role × site counts directly from byRole
+    const roleSiteCounts = roleRows.map(role => {
+      const row = { role, total: 0 };
+      for (const { key } of siteCols) {
+        const count = (byRole[role] || []).filter(
+          p => Array.isArray(p?.siteSelection) && p.siteSelection.includes(key)
+        ).length;
+        row[key] = count;
+        row.total += count;
+      }
+      return row;
+    });
+
+    // Column totals and grand total
+    const columnTotals = siteCols.reduce((acc, { key }) => {
+      acc[key] = roleSiteCounts.reduce((sum, r) => sum + (r[key] || 0), 0);
+      return acc;
+    }, {});
+    const grandTotal = Object.values(columnTotals).reduce((a, b) => a + b, 0);
+
+    const sliderSettings = {
+      className: 'center',
+      centerMode: true,
+      infinite: siteCols.length > 1,
+      slidesToShow: Math.min(siteCols.length, 3),
+      centerPadding: '0px',
+      speed: 450,
+      arrows: true,
+      dots: true,
+      responsive: [
+        { breakpoint: 1024, settings: { slidesToShow: Math.min(siteCols.length, 2) } },
+        { breakpoint: 640,  settings: { slidesToShow: 1 } },
+      ],
+    };
+
     return (
         <div className='w-full p-4 overflow-auto h-full '>
             <h2 className='text-xl font-bold dark:text-white'>Dashboard</h2>
                 {/* Info cards */}
-                < div className='flex flex-wrap gap-2 m-1 md:m-8  justify-center md:justify-between'>
+                <div className='flex flex-row gap-4 m-1 md:m-8 md:mt-4 justify-center md:justify-between'>
                     {informationCardDetails.map((infoCard) => (
-                        <div className='flex items-center gap-3 w-full md:w-60 p-4 overflow-auto bg-primary-200/30 border-[1.5px] border-primary-500/30 text-primary-500 rounded-xl shadow-lg md:shadow-xl dark:text-primary-200 dark:border-primary-200 '>
-                            <div className='flex items-center justify-center p-5 h-15 bg-white inset-shadow-sm/30 border-[1.5px] border-primary-500/40 rounded-xl'>{infoCard.icon}</div>
-                            <div className='flex flex-col gap-1 '>
-                                <p className='text-sm text-center font-bold'>{infoCard.title}</p>
-                                <p className='text-center text-2xl text-white font-bold'>{infoCard.info}</p>
+                        <div onClick={() => setPersonnelModal(true)} className='flex items-center gap-3 w-full md:w-full p-4 overflow-auto bg-primary-200/30 border-[1.5px] border-primary-500/30 text-primary-500 rounded-xl shadow-lg md:shadow-xl dark:text-primary-200 dark:border-primary-200'>
+                          <div className='flex items-center justify-center p-5 h-15 bg-white inset-shadow-sm/30 border-[1.5px] border-primary-500/40 rounded-xl'>
+                            {infoCard.icon}
+                          </div>
+                          
+                          <div className='grid grid-cols-1 md:grid-cols-12 h-full w-full md:divide-x md:divide-primary-500/30 dark:md:divide-primary-200'>
+                            <div className='md:col-span-8 md:pr-4 flex items-center'>
+                              <p className='text-lg font-bold'>{infoCard.title}</p>
                             </div>
+                            <div className='md:col-span-4 md:pl-4 md:border-l md:border-primary-500/30 dark:md:border-primary-200 flex justify-center items-center'>
+                              <p className='text-2xl text-center text-white font-bold'>{infoCard.info}</p>
+                            </div>
+                          </div>
                         </div>
                     ))}
                 </div>
                 
                 <div className='flex flex-wrap m-1 mt-4 md:m-8 gap-2 justify-center md:justify-between text-sm'>
                     <div className='grid grid-cols-1 md:grid-cols-12 gap-4 w-full'>
-                        
                         {/* Expenses chart */}
-                        <div className='flex flex-col md:col-span-4 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                          <div className='flex items-center gap-2 w-full'>
-                            <h2 className='text-center font-bold w-full'>
-                              {isOM ? 'Site-based Expenses' : `Role based Expenses for ${moment().format('GGGG-[W]ww')}`}
-                            </h2>
+                        <div className='flex flex-col md:col-span-3 shadow-lg md:shadow-xl gap-0 w-full pt-0 pr-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                          <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                            <p className='text-lg font-bold text-primary-500'>
+                              {isOM ? `Site based Expenses` : `Role based Expenses`}
+                            </p>
+                            <p className='text-xl text-white font-bold'>
+                              {moment().format('GGGG-[W]ww')}
+                            </p>
                           </div>
 
-                          {isOM ? (
-                            <BarChart
-                              xAxis={[{ data: selectedSites }]}
-                              series={[{
-                                data: selectedSites.map(s => Number((totalExp?.[s] || 0).toFixed(2)))
-                              }]}
-                              borderRadius={10}
-                              height={300}
-                            />
-                          ) : (
-                            <BarChart
-                              xAxis={[{ data: ['Compliance', 'On-Site Manager', 'Operational Manager'] }]}
-                              series={[{
-                                data: [
-                                  Number((totalExp['Compliance'] || 0).toFixed(2)),
-                                  Number((totalExp['On-Site Manager'] || 0).toFixed(2)),
-                                  Number((totalExp['Operational Manager'] || 0).toFixed(2)),
-                                ]
-                              }]}
-                              borderRadius={10}
-                              height={300}
-                            />
-                          )}
-                        </div>
-                      
-                        {/* Personnel summary */}
-                        <div className='flex flex-col md:col-span-4 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                          <div className='flex items-center gap-2 w-full'>
-                            <h2 className='text-center font-bold w-full'>Personnel Summary</h2>
+                          <div className='pr-8 flex justify-center items-center h-full'>
+                            {isOM ? (
+                              <BarChart
+                                xAxis={[{ data: selectedSites, categoryGapRatio: 0.5, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' } }]}
+                                yAxis={[{ min: 0, tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' } }]}
+                                series={[{
+                                  data: selectedSites.map(s => Number((totalExp?.[s] || 0).toFixed(2))),
+                                  color: '#4F46E5',
+                                  valueFormatter: fmtGBP,
+                                  highlightScope: { fade: 'global', highlight: 'item' },
+                                }]}
+                                height={350}
+                                borderRadius={12}
+                                margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
+                                slotProps={{ legend: { hidden: true } }}
+                                sx={chartSx}
+                              />
+                            ) : (
+                              <BarChart
+                                xAxis={[{
+                                  data: ['Compliance', 'OSM', 'Ops Manager'],
+                                  tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
+                                  categoryGapRatio: 0.5
+                                }]}
+                                yAxis={[{
+                                  min: 0,
+                                  tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
+                                }]}
+                                series={[{
+                                  data: [
+                                    Number((totalExp['Compliance'] || 30).toFixed(2)),
+                                    Number((totalExp['On-Site Manager'] || 70).toFixed(2)),
+                                    Number((totalExp['Operational Manager'] || 45).toFixed(2)),
+                                  ],
+                                  color: '#4F46E5',          // Indigo 600 (modern, neutral)
+                                  valueFormatter: fmtGBP,    // Tooltip number format
+                                  highlightScope: { fade: 'global', highlight: 'item' },
+                                }]}
+                                height={350}
+                                borderRadius={12}
+                                margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
+                                slotProps={{ legend: { hidden: true }}}  // ensure no legend noise
+                                sx={chartSx}
+                              />
+                            )}
                           </div>
-                      
-                          {isOM ? (
-                            <PieChart
-                              series={[{
-                                data: selectedSites.map((siteKey, idx) => ({
-                                  id: idx,
-                                  label: siteKey,
-                                  value: filteredPersonnels.filter(p => Array.isArray(p.siteSelection) && p.siteSelection.includes(siteKey)).length,
-                                })),
-                                innerRadius: 40,
-                                outerRadius: 80,
-                                cornerRadius: 5,
-                                paddingAngle: 3,
-                                highlightScope: { fade: 'global', highlight: 'item' },
-                                faded: { innerRadius: 40, additionalRadius: -10, color: 'gray' },
-                              }]}
-                              height={200}
-                              width={Math.max(200, selectedSites.length * 80)}
-                            />
-                          ) : (
-                            <PieChart
-                              series={[{
-                                data: [
-                                  { id: 0, value: byRole['Compliance']?.length || 0, label: 'Compliance' },
-                                  { id: 1, value: byRole['On-Site Manager']?.length || 0, label: 'On-Site Manager' },
-                                  { id: 2, value: byRole['Operational Manager']?.length || 0, label: 'Operational Manager' },
-                                ],
-                                innerRadius: 40,
-                                outerRadius: 80,
-                                cornerRadius: 5,
-                                paddingAngle: 3,
-                                highlightScope: { fade: 'global', highlight: 'item' },
-                                faded: { innerRadius: 40, additionalRadius: -10, color: 'gray' },
-                              }]}
-                              height={200}
-                              width={200}
-                            />
-                          )}
                         </div>
 
-                        <div className='flex flex-col md:col-span-2 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex items-center gap-2 w-full'>
-                                <h2 className='text-center font-bold w-full'>Attendance for {moment().format('GGGG-[W]ww')}</h2>
+                        {/* Hours chart */}
+                        <div className='flex flex-col md:col-span-6 shadow-lg md:shadow-xl gap-0 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                              <p className='text-lg font-bold text-primary-500'>
+                                Average Hours Worked
+                              </p>
+                              <p className='text-xl text-white font-bold'>
+                                {moment().format('GGGG-[W]ww')}
+                              </p>
                             </div>
-                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 1, md: 3 }} alignItems="center"
-                                    justifyContent="center"
-                                    sx={{ width: '100%' }}
-                                    paddingTop={4}>
-                                <Gauge width={200} height={200} value={attendance} innerRadius="60%" outerRadius="90%" cornerRadius="50%" 
-                                        sx={{
-                                         '& .MuiGauge-valueText': {
-                                           fontSize: 25,
-                                           transform: 'translate(0px, 0px)',
-                                         },
-                                        }}
-                                        text={({ value }) => `${value} %`}/>
-                            </Stack>
+                            <div className='pr-8 flex justify-center items-center h-full'>
+                              <LineChart
+                                xAxis={[{
+                                  data: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                                  scaleType: 'point',
+                                  tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
+                                }]}
+                                yAxis={[{
+                                  min: 0,
+                                  tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.55)' },
+                                }]}
+                                series={[{
+                                  data: [10, 30, 20, 35, 45, 25, 35],
+                                  area: true,
+                                  curve: 'linear',        
+                                  color: '#4F46E5',          // match your brand
+                                  valueFormatter: fmtHours,  // tooltip format
+                                  highlightScope: { fade: 'global', highlight: 'series' },
+                                  showMark: true,
+                                }]}
+                                height={350}
+                                margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
+                                slotProps={{ legend: { hidden: true } }}
+                                sx={{
+                                  // hide hard axis lines/ticks
+                                  '& .MuiChartsAxis-line': { stroke: 'transparent' },
+                                  '& .MuiChartsAxis-tick': { stroke: 'transparent' },
+                                
+                                  // subtle horizontal grid
+                                  '& .MuiChartsGrid-root line': {
+                                    stroke: 'rgba(148,163,184,.25)',   // slate-400 @ 25%
+                                    strokeDasharray: '2 6',
+                                  },
+                                
+                                  // thicker line
+                                  '& .MuiLineElement-root': { strokeWidth: 2.5 },
+                                
+                                  // clean filled area
+                                  '& .MuiAreaElement-root': { opacity: 0.18 },
+                                
+                                  // small white markers with colored stroke
+                                  '& .MuiMarkElement-root': {
+                                    r: 3.5,
+                                    fill: '#fff',
+                                    stroke: '#4F46E5',
+                                    strokeWidth: 2,
+                                  },
+                                }}
+                              />
+                            </div>
+                        </div>
+                      
+                        <div className='flex flex-col md:col-span-3 gap-3'>
+                          {/* Personnel summary */}
+                          <div className='flex flex-col shadow-lg md:shadow-xl gap-2 w-full p-0 pb-2 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                            <div className='flex items-center gap-2 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                              <h2 className='text-center font-bold w-full'>Personnel Summary</h2>
+                            </div>
+                          
+                            {isOM ? (
+                              <PieChart
+                                series={[{
+                                  data: selectedSites.map((siteKey, idx) => ({
+                                    id: idx,
+                                    label: siteKey,
+                                    value: filteredPersonnels.filter(p => Array.isArray(p.siteSelection) && p.siteSelection.includes(siteKey)).length,
+                                  })),
+                                  innerRadius: 35,
+                                  outerRadius: 70,
+                                  cornerRadius: 5,
+                                  paddingAngle: 3,
+                                  highlightScope: { fade: 'global', highlight: 'item' },
+                                  faded: { innerRadius: 40, additionalRadius: -10, color: 'gray' },
+                                }]}
+                                height={175}
+                                width={Math.max(175, selectedSites.length * 80)}
+                              />
+                            ) : (
+                              <PieChart
+                                series={[{
+                                  data: [
+                                    { id: 0, value: byRole['Compliance']?.length || 0, label: `Compliance (${byRole['Compliance']?.length})` },
+                                    { id: 1, value: byRole['On-Site Manager']?.length || 0, label: `On-Site Manager (${byRole['On-Site Manager']?.length})` },
+                                    { id: 2, value: byRole['Operational Manager']?.length || 0, label: `Operational Manager (${byRole['Operational Manager']?.length})` },
+                                  ],
+                                  innerRadius: 35,
+                                  outerRadius: 70,
+                                  cornerRadius: 5,
+                                  paddingAngle: 3,
+                                  highlightScope: { fade: 'global', highlight: 'item' },
+                                  faded: { innerRadius: 40, additionalRadius: -10, color: 'gray' },
+                                }]}
+                                height={175}
+                                width={175}
+                              />
+                            )}
+                          </div>
+
+                          {/* Attendance summary */}
+                          <div className='flex flex-col shadow-lg md:shadow-xl gap-0 w-full p-0 pb-2 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                              <div className='flex items-center gap-2 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                                  <h2 className='text-center font-bold w-full'>Attendance for {moment().format('GGGG-[W]ww')}</h2>
+                              </div>
+                              <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 1, md: 3 }} alignItems="center"
+                                      justifyContent="center"
+                                      sx={{ width: '100%' }}
+                                      paddingTop={1}>
+                                  <Gauge width={200} height={200} value={attendance} innerRadius="60%" outerRadius="90%" cornerRadius="50%" 
+                                          sx={{
+                                           '& .MuiGauge-valueText': {
+                                             fontSize: 25,
+                                             transform: 'translate(0px, 0px)',
+                                           },
+                                          }}
+                                          text={({ value }) => `${value} %`}/>
+                              </Stack>
+                          </div>
                         </div>
 
-                        <div className='flex flex-col md:col-span-2 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex items-center gap-2 w-full'>
-                                <h2 className='text-center font-bold w-full'>Additional Charges for {moment().format('GGGG-[W]ww')}</h2>
+                        {/* Monthly Expense chart */}
+                        <div className='flex flex-col md:col-span-9 shadow-lg md:shadow-xl gap-3 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                              <p className='text-lg font-bold text-primary-500'>
+                                Monthly Expense
+                              </p>
+                              <p className='text-xl text-white font-bold'>
+                                {moment().format('MMMM-YYYY')}
+                              </p>
+                            </div>
+                            <div className='pr-8 flex justify-center items-center h-full'>
+                              <BarChart
+                                  xAxis={[{ data: dayLabels, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' } }]}
+                                  yAxis={[{
+                                    min: 0,
+                                    tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
+                                  }]}
+                                  series={[{ data: [7, 13, 25, 42, 68, 91, 3, 77, 59, 84, 16, 34, 71, 29, 5, 62, 48, 95, 20, 53, 87, 11, 38, 66, 73, 1, 99, 32, 56, 46] }]}
+                                  height={350}
+                                  borderRadius={12}
+                                  margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
+                                  slotProps={{ legend: { hidden: true }}}  // ensure no legend noise
+                                  sx={chartSx}
+                              />
+                            </div>
+                        </div>
+
+                        {/* Additional Charges chart */}
+                        <div className='flex flex-col md:col-span-3 shadow-lg md:shadow-xl gap-3 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                              <p className='text-lg font-bold text-primary-500'>
+                                Additional Charges
+                              </p>
+                              <p className='text-xl text-white font-bold'>
+                                {moment().format('GGGG-[W]ww')}
+                              </p>
                             </div>
                             <BarChart
-                                xAxis={[{ data: ['Addition', 'Deduction'] }]}
+                                xAxis={[{ data: ['Addition', 'Deduction'], tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, categoryGapRatio: 0.7 }]}
+                                yAxis={[{
+                                  min: 0,
+                                  tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
+                                }]}
                                 series={[{ data: [additionalChargeTotals.addition, additionalChargeTotals.deduction] }]}
-                                borderRadius={10}
-                                height={300}
-                            />
-                        </div>
-
-                        <div className='flex flex-col md:col-span-4 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex items-center gap-2 w-full'>
-                                <h2 className='text-center font-bold w-full'>Average Hours Worked for {moment().format('GGGG-[W]ww')}</h2>
-                            </div>
-                            <LineChart
-                                xAxis={[{ data: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], scaleType: 'point' }]}
-                                series={[{ data: dailyHoursThisWeek, connectNulls: true, area: true, curve: 'linear' }]}
-                                height={300}
-                            />
-                        </div>
-
-                        <div className='flex flex-col md:col-span-8 shadow-lg md:shadow-xl gap-3 w-full p-4 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex items-center gap-2 w-full'>
-                                <h2 className='text-center font-bold w-full'>Monthly Expense - {moment().format('MMMM YYYY')}</h2>
-                            </div>
-                            <BarChart
-                                xAxis={[{ data: dayLabels }]}
-                                series={[{ data: dailyExpenseThisMonth }]}
-                                borderRadius={10}
-                                height={300}
+                                height={350}
+                                borderRadius={12}
+                                margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
+                                slotProps={{ legend: { hidden: true }}}  // ensure no legend noise
+                                sx={chartSx}
                             />
                         </div>
                     </div>
-                    
                 </div>
+                <Modal isOpen={personnelModal} onClose={() => setPersonnelModal(false)}>
+                  <h2 className="text-xl font-semibold px-2 md:px-6 py-2 text-gray-800 dark:text-white border-b border-neutral-300">
+                    Total Personnels Summary
+                  </h2>
+
+                  <div className="p-2 md:p-10 mx-auto overflow-hidden max-w-[75rem]">
+                    <Slider {...sliderSettings} className="site-cards-slider">
+                      {siteCols.map(({ key: siteKey, label }) => (
+                        // Each direct child of <Slider> is one slide
+                        <div key={siteKey}>
+                          <div className="flex flex-col shadow-lg md:shadow-xl bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6
+                                          h-full mx-auto">
+                            {/* Card header */}
+                            <div className="flex flex-col p-4 gap-1 w-full bg-primary-200/30 border-b-[1.5px] border-primary-500/30 dark:border-primary-200 rounded-t-xl items-center">
+                              <p className="text-lg font-bold text-primary-500">{label}</p>
+                              <p className="text-xs text-primary-700/70 dark:text-primary-200/70">{siteKey}</p>
+                            </div>
+                      
+                            {/* Role rows with counts */}
+                            <div className="px-4 py-3">
+                              {roleRows.map((roleName) => (
+                                <div key={`${siteKey}-${roleName}`} className="flex items-center justify-between py-2 border-b border-neutral-200/50 last:border-b-0">
+                                  <span className="text-sm">{roleName}</span>
+                                  <span className="inline-flex min-w-[2rem] justify-center rounded-md bg-primary-200/60 px-2 py-0.5 text-xs font-semibold text-primary-900 dark:text-primary-100">
+                                    {countFor(siteKey, roleName)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </Slider>
+                    
+                    {/* Scale/opacity emphasis on the centered slide */}
+                    <style>{`
+                      .site-cards-slider .slick-track { display: flex; align-items: stretch; }
+                      .site-cards-slider .slick-slide { padding: 0 12px; }
+                      .site-cards-slider .slick-slide > div { display: flex; } /* allow card to stretch */
+                      .site-cards-slider .slick-slide { transform: scale(.85); opacity: .65; transition: transform .35s ease, opacity .35s ease; }
+                      .site-cards-slider .slick-center { transform: scale(1.05); opacity: 1; z-index: 2; }
+                    `}</style>
+                  </div>
+          </Modal>
         </div >
     );
 };

@@ -29,6 +29,7 @@ import SchedulePlanner from './pages/SchedulePlanner/SchedulePlanner';
 import ResetPasswordRequest from './pages/Login/ResetPasswordRequest';
 import ResetPasswordForm from './pages/Login/ResetPasswordForm';
 import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
+import PrivacyPolicy from './pages/LandingPage/PrivacyPolicy/PrivacyPolicy';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -36,7 +37,7 @@ function App() {
   const [sidebarIsOpen, setSidebarIsOpen] = useState(0);
   const { userDetails } = useSelector((state) => state.auth);
   const location = useLocation();
-  const hideLayout = location.pathname === '/login' || location.pathname === '/' || location.pathname === '/reset-password' || location.pathname.startsWith('/reset-password');
+  const hideLayout = location.pathname === '/login' || location.pathname === '/' || location.pathname === '/privacypolicy' || location.pathname === '/reset-password' || location.pathname.startsWith('/reset-password');
   //const personnelsLoading = useSelector((state) => state.personnels.personnelStatus);
   const sitesLoading = useSelector((state) => state.sites.siteStatus);
   const rolesLoading = useSelector((state) => state.roles.roleStatus);
@@ -122,6 +123,7 @@ function App() {
                 />
               ))}
               <Route path="/update-password" element={<UpdatePassword />} />
+              <Route path='/privacypolicy' element={<PrivacyPolicy />} />
               {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
             </Routes>)}
         </div>
