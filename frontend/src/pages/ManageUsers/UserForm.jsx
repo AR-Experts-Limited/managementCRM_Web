@@ -157,7 +157,7 @@ export const UserForm = ({ clearUser, states, setters, isPrivileged, userHierarc
                     <div className='border border-neutral-200 rounded-lg overflow-hidden md:overflow-auto md:max-h-[33rem]'>
                         <table className='table-general'>
                             <thead>
-                                <tr className='md:sticky md:top-0  bg-primary-800 text-white'>
+                                <tr className='md:sticky md:top-0  bg-primary-300 text-white'>
                                     <th>Pages</th>
                                     <th>Access</th>
                                 </tr>

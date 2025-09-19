@@ -25,7 +25,7 @@ const uploadDoc = multer({
     }),
 });
 
-router.get('/', fetchWeeklyInvoices);
+router.post('/', fetchWeeklyInvoices);
 router.put('/update', updateWeeklyInvoice);
 router.put('/document', uploadDoc.single('document'), updateDocument);
 

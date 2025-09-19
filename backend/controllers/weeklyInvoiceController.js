@@ -21,7 +21,7 @@ const getModels = (req) => ({
 const fetchWeeklyInvoices = async (req, res) => {
     try {
         const { WeeklyInvoice } = getModels(req)
-        const { personnelIds, serviceWeeks, site } = req.query;
+        const { personnelIds, serviceWeeks, site } = req.body;
 
         // Build query object
         const query = {};
@@ -31,6 +31,7 @@ const fetchWeeklyInvoices = async (req, res) => {
         if (serviceWeeks) query.week = { $in: serviceWeeks };
         if (site) query.site = site;
 
+        console.log("Query = ", query);
         // Fetch weekly invoices and populate the invoices field
         const weeklyInvoices = await WeeklyInvoice.find(query).populate('invoices').populate({ path: 'personnelId' });
 

@@ -21,7 +21,7 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { Gauge } from '@mui/x-charts/Gauge';
 import Stack from '@mui/material/Stack';
-import Modal from '../../components/Modal/Modal';
+import BlurModal from '../../components/Modal/BlurModal';
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -39,13 +39,21 @@ const Dashboard = () => {
     const { userDetails } = useSelector((state) => state.auth);
     const [dailyHoursThisWeek, setDailyHoursThisWeek] = useState([0, 0, 0, 0, 0, 0, 0]);
     const [attendance, setAttendance] = useState();
-    const [dailyExpenseThisMonth, setDailyExpenseThisMonth] = useState([]);
+    const [dailyStackExpenseThisWeek, setDailyStackExpenseThisWeek] = useState({});
     const [additionalChargeTotals, setAdditionalChargeTotals] = useState({ addition: 0, deduction: 0 });
     const [personnelModal, setPersonnelModal] = useState(false);
     const [siteModal, setSiteModal] = useState(false);
 
     const daysInMonth = moment().daysInMonth();
     const dayLabels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+    const siteColors = [
+      '#4F46E5', // Indigo
+      '#22C55E', // Green
+      '#EAB308', // Amber
+      '#EF4444', // Red
+      '#06B6D4', // Cyan
+      '#A855F7', // Purple
+    ];
 
     // Derived helpers
     const isOM = userDetails?.role === 'Operational Manager';
@@ -140,6 +148,7 @@ const Dashboard = () => {
 
         const personnelsBase = isOM ? filteredPersonnels : allPersonnels;
         const personnelIds = personnelsBase.map(p => p._id);
+        console.log("PersonnelIds = ", personnelIds);
 
         let totalExpenses = isOM
             ? Object.fromEntries(selectedSites.map(s => [s, 0]))
@@ -147,19 +156,32 @@ const Dashboard = () => {
 
         if (personnelIds.length === 0) {
             setTotalExp(totalExpenses);
+            setDailyStackExpenseThisWeek({});
             return;
         }
 
-        const daysInMonth = moment().daysInMonth();
-        const dailyTotals = new Array(daysInMonth).fill(0);
+        // Current week bounds (Sun..Sat)
+        const startOfWeek = moment().startOf('week').startOf('day');
+        const endOfWeek   = moment().endOf('week').endOf('day');
+          
+        // Prepare accumulator depending on user type
+        const segmentWeekTotals = (() => {
+          if (isOM) {
+            // OM: split by site (selectedSites)
+            return selectedSites.reduce((acc, s) => { acc[s] = new Array(7).fill(0); return acc; }, {});
+          }
+          // Admin/Super Admin: split by role
+          const roleNames = roles?.map(r => r.roleName) || ['Compliance','On-Site Manager','Operational Manager'];
+          return roleNames.reduce((acc, r) => { acc[r] = new Array(7).fill(0); return acc; }, {});
+        })();
+
         let addTotal = 0;
         let dedTotal = 0;
 
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/weeklyInvoice`, {
-                params: {
-                    serviceWeeks: [moment().format('GGGG-[W]ww')],
-                }
+            const response = await axios.post(`${API_BASE_URL}/api/weeklyInvoice`, {
+                personnelIds: personnelIds,
+                serviceWeeks: [moment().format('GGGG-[W]ww')],
             });
             const weeklyInvoices = response.data.data || [];
             console.log("Fetched weeklyInvoices - ", weeklyInvoices);
@@ -184,24 +206,31 @@ const Dashboard = () => {
             }
 
             for (const rec of weeklyInvoices) {
+              const roleName = rec?.personnelId?.role;                // for Admin & super-admin
+              const siteKey  = rec?.personnelId?.siteSelection?.[0];  // for OM
+
               const invArr = Array.isArray(rec?.invoices) ? rec.invoices : [];
               for (const inv of invArr) {
-
                 const dateRaw = inv?.date;
-                console.log("Invoice Date Raw - ", dateRaw);
                 if (!dateRaw) continue;
-            
                 const m = moment(dateRaw);
                 if (!m.isValid()) continue;
-                if (!m.isSame(moment(), 'month')) continue; // only current month
-            
-                const dayIdx = m.date() - 1; // 0-based index
-                if (dayIdx < 0 || dayIdx >= daysInMonth) continue;
-            
+                if (m.isBefore(startOfWeek) || m.isAfter(endOfWeek)) continue;
+              
+                const dayIdx = m.day(); // 0..6 (Sun..Sat)
                 const amt = Number(inv?.total) || 0;
-                console.log("Invoice Amount - ", inv?.total);
-                console.log(`  Adding £${amt} to day index ${dayIdx}`);
-                dailyTotals[dayIdx] += amt;
+                
+                if (isOM) {
+                  // OM: count by site, only OSM invoices on selected sites
+                  if (roleName === 'On-Site Manager' && siteKey && selectedSites.includes(siteKey)) {
+                    if (!segmentWeekTotals[siteKey]) segmentWeekTotals[siteKey] = new Array(7).fill(0);
+                    segmentWeekTotals[siteKey][dayIdx] += amt;
+                  }
+                } else {
+                  // Admin/Super Admin: count by role
+                  if (!segmentWeekTotals[roleName]) segmentWeekTotals[roleName] = new Array(7).fill(0);
+                  segmentWeekTotals[roleName][dayIdx] += amt;
+                }
               }
 
               const items = Array.isArray(rec?.additionalChargesDetail)
@@ -220,11 +249,13 @@ const Dashboard = () => {
             }
         
             // Round to 2dp for display safety
-            const dailyTotals2dp = dailyTotals.map(v => Math.round(v * 100) / 100);
             const r2 = n => Math.round(n * 100) / 100;
 
             setTotalExp(totalExpenses);
-            setDailyExpenseThisMonth(dailyTotals2dp);
+            const rounded = Object.fromEntries(
+              Object.entries(segmentWeekTotals).map(([k, arr]) => [k, arr.map(v => r2(v))])
+            );
+            setDailyStackExpenseThisWeek(rounded);
             setAdditionalChargeTotals({ addition: r2(addTotal), deduction: r2(dedTotal) });
             console.log("Total Expenses - ", totalExpenses);
 
@@ -363,26 +394,10 @@ const Dashboard = () => {
 
     return (
         <div className='w-full p-4 overflow-auto h-full '>
-            <h2 className='text-xl font-bold dark:text-white'>Dashboard</h2>
+            <h1 className='text-2xl font-bold dark:text-white'>Welcome back, {userDetails?.userName.split(' ')[0]}</h1>
                 {/* Info cards */}
-                <div className='flex flex-row gap-4 m-1 md:m-8 md:mt-4 justify-center md:justify-between'>
-                    {informationCardDetails.map((infoCard) => (
-                        <div onClick={() => setPersonnelModal(true)} className='flex items-center gap-3 w-full md:w-full p-4 overflow-auto bg-primary-200/30 border-[1.5px] border-primary-500/30 text-primary-500 rounded-xl shadow-lg md:shadow-xl dark:text-primary-200 dark:border-primary-200'>
-                          <div className='flex items-center justify-center p-5 h-15 bg-white inset-shadow-sm/30 border-[1.5px] border-primary-500/40 rounded-xl'>
-                            {infoCard.icon}
-                          </div>
-                          
-                          <div className='grid grid-cols-1 md:grid-cols-12 h-full w-full md:divide-x md:divide-primary-500/30 dark:md:divide-primary-200'>
-                            <div className='md:col-span-8 md:pr-4 flex items-center'>
-                              <p className='text-lg font-bold'>{infoCard.title}</p>
-                            </div>
-                            <div className='md:col-span-4 md:pl-4 md:border-l md:border-primary-500/30 dark:md:border-primary-200 flex justify-center items-center'>
-                              <p className='text-2xl text-center text-white font-bold'>{infoCard.info}</p>
-                            </div>
-                          </div>
-                        </div>
-                    ))}
-                </div>
+<div className='flex flex-row gap-4 m-1 md:m-8 md:mt-4 justify-center md:justify-between'> {informationCardDetails.map((infoCard) => ( <div onClick={infoCard.title === 'Total Sites' ? () => setPersonnelModal(true) : undefined} className='flex items-center gap-3 w-full md:w-full p-4 overflow-auto bg-primary-200/30 border-[1.5px] border-primary-500/30 text-primary-500 rounded-xl shadow-lg md:shadow-xl dark:text-primary-200 dark:border-primary-200'> <div className='flex items-center justify-center p-5 h-15 bg-white inset-shadow-sm/30 border-[1.5px] border-primary-500/40 rounded-xl'> {infoCard.icon} </div> <div className='grid grid-cols-1 md:grid-cols-12 h-full w-full md:divide-x md:divide-primary-500/30 dark:md:divide-primary-200'> <div className='md:col-span-8 md:pr-4 flex items-center'> <p className='text-lg font-bold'>{infoCard.title}</p> </div> <div className='md:col-span-4 md:pl-4 md:border-l md:border-primary-500/30 dark:md:border-primary-200 flex justify-center items-center'> <p className='text-2xl text-center text-white font-bold'>{infoCard.info}</p> </div> </div> </div> ))} </div>
+
                 
                 <div className='flex flex-wrap m-1 mt-4 md:m-8 gap-2 justify-center md:justify-between text-sm'>
                     <div className='grid grid-cols-1 md:grid-cols-12 gap-4 w-full'>
@@ -400,11 +415,15 @@ const Dashboard = () => {
                           <div className='pr-8 flex justify-center items-center h-full'>
                             {isOM ? (
                               <BarChart
-                                xAxis={[{ data: selectedSites, categoryGapRatio: 0.5, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' } }]}
+                                xAxis={[{ data: selectedSites, categoryGapRatio: 0.5, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, 
+                                  colorMap: {
+                                    type: 'piecewise',
+                                    thresholds: [selectedSites[1], selectedSites[2]],
+                                    colors: ['#4254FB', '#FFB422', '#FA4F58'],
+                                  } }]}
                                 yAxis={[{ min: 0, tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' } }]}
                                 series={[{
                                   data: selectedSites.map(s => Number((totalExp?.[s] || 0).toFixed(2))),
-                                  color: '#4F46E5',
                                   valueFormatter: fmtGBP,
                                   highlightScope: { fade: 'global', highlight: 'item' },
                                 }]}
@@ -419,7 +438,12 @@ const Dashboard = () => {
                                 xAxis={[{
                                   data: ['Compliance', 'OSM', 'Ops Manager'],
                                   tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
-                                  categoryGapRatio: 0.5
+                                  categoryGapRatio: 0.5,
+                                  colorMap: {
+                                    type: 'piecewise',
+                                    thresholds: ['OSM', 'Ops Manager'],
+                                    colors: ['#4254FB', '#FFB422', '#FA4F58'],
+                                  }
                                 }]}
                                 yAxis={[{
                                   min: 0,
@@ -431,7 +455,7 @@ const Dashboard = () => {
                                     Number((totalExp['On-Site Manager'] || 70).toFixed(2)),
                                     Number((totalExp['Operational Manager'] || 45).toFixed(2)),
                                   ],
-                                  color: '#4F46E5',          // Indigo 600 (modern, neutral)
+                                  // color: '#4F46E5',          // Indigo 600 (modern, neutral)
                                   valueFormatter: fmtGBP,    // Tooltip number format
                                   highlightScope: { fade: 'global', highlight: 'item' },
                                 }]}
@@ -509,11 +533,7 @@ const Dashboard = () => {
                       
                         <div className='flex flex-col md:col-span-3 gap-3'>
                           {/* Personnel summary */}
-                          <div className='flex flex-col shadow-lg md:shadow-xl gap-2 w-full p-0 pb-2 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex items-center gap-2 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                              <h2 className='text-center font-bold w-full'>Personnel Summary</h2>
-                            </div>
-                          
+                          <div className='flex flex-col gap-2 w-full p-0 pb-2 dark:bg-dark-5 dark:border-dark-6'>
                             {isOM ? (
                               <PieChart
                                 series={[{
@@ -554,11 +574,8 @@ const Dashboard = () => {
                           </div>
 
                           {/* Attendance summary */}
-                          <div className='flex flex-col shadow-lg md:shadow-xl gap-0 w-full p-0 pb-2 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                              <div className='flex items-center gap-2 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                                  <h2 className='text-center font-bold w-full'>Attendance for {moment().format('GGGG-[W]ww')}</h2>
-                              </div>
-                              <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 1, md: 3 }} alignItems="center"
+                          <div className='flex flex-row gap-0 w-full p-0 pb-2 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
+                              <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 1, md: 1 }} alignItems="center"
                                       justifyContent="center"
                                       sx={{ width: '100%' }}
                                       paddingTop={1}>
@@ -570,35 +587,62 @@ const Dashboard = () => {
                                            },
                                           }}
                                           text={({ value }) => `${value} %`}/>
+                                  <div className='flex flex-col items-center gap-0 dark:border-primary-200 p-2 rounded-t-xl'>
+                                    <h2 className='text-center font-bold w-full text-lg font-bold text-primary-500'>Attendance for</h2>
+                                    <h2 className='text-center font-bold w-full'>{moment().format('GGGG-[W]ww')}</h2>
+                                  </div>
                               </Stack>
                           </div>
                         </div>
 
-                        {/* Monthly Expense chart */}
+                        {/* Current Week – Daily Expense (stacked) */}
                         <div className='flex flex-col md:col-span-9 shadow-lg md:shadow-xl gap-3 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                              <p className='text-lg font-bold text-primary-500'>
-                                Monthly Expense
-                              </p>
-                              <p className='text-xl text-white font-bold'>
-                                {moment().format('MMMM-YYYY')}
-                              </p>
-                            </div>
-                            <div className='pr-8 flex justify-center items-center h-full'>
-                              <BarChart
-                                  xAxis={[{ data: dayLabels, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' } }]}
+                          <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
+                            <p className='text-lg font-bold text-primary-500'>
+                              {isOM ? 'Daily Expense by Site' : 'Daily Expense by Role'}
+                            </p>
+                            <p className='text-xl text-white font-bold'>
+                              {moment().startOf('week').format('DD MMM')} – {moment().endOf('week').format('DD MMM')}
+                            </p>
+                          </div>
+                          <div className='pr-8 flex justify-center items-center h-full'>
+                            {(() => {
+                              const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                            
+                              // Segment labels: sites for OM, roles otherwise
+                              const segmentNames = isOM
+                                ? selectedSites
+                                : (roles?.map(r => r.roleName) || Object.keys(dailyStackExpenseThisWeek || {}));
+                            
+                              const series = segmentNames.map((name) => ({
+                                label: isOM
+                                  ? (sites.find(s => s.siteKeyword === name)?.siteName || name)
+                                  : name,
+                                data: (dailyStackExpenseThisWeek?.[name] || new Array(7).fill(0)),
+                                stack: 'total',
+                                valueFormatter: fmtGBP,
+                              }));
+                            
+                              return (
+                                <BarChart
+                                  xAxis={[{
+                                    data: days,
+                                    tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
+                                  }]}
                                   yAxis={[{
                                     min: 0,
                                     tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
                                   }]}
-                                  series={[{ data: [7, 13, 25, 42, 68, 91, 3, 77, 59, 84, 16, 34, 71, 29, 5, 62, 48, 95, 20, 53, 87, 11, 38, 66, 73, 1, 99, 32, 56, 46] }]}
+                                  series={series}
                                   height={350}
                                   borderRadius={12}
                                   margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
-                                  slotProps={{ legend: { hidden: true }}}  // ensure no legend noise
+                                  slotProps={{ legend: { hidden: false } }}
                                   sx={chartSx}
-                              />
-                            </div>
+                                />
+                              );
+                            })()}
+                          </div>
                         </div>
 
                         {/* Additional Charges chart */}
@@ -612,7 +656,13 @@ const Dashboard = () => {
                               </p>
                             </div>
                             <BarChart
-                                xAxis={[{ data: ['Addition', 'Deduction'], tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, categoryGapRatio: 0.7 }]}
+                                xAxis={[{ data: ['Addition', 'Deduction'], tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, categoryGapRatio: 0.7,
+                                 colorMap: {
+                                    type: 'piecewise',
+                                    thresholds: ['Deduction'],
+                                    colors: ['#42fb95ff', '#FA4F58'],
+                                  }
+                                }]}
                                 yAxis={[{
                                   min: 0,
                                   tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
@@ -627,11 +677,7 @@ const Dashboard = () => {
                         </div>
                     </div>
                 </div>
-                <Modal isOpen={personnelModal} onClose={() => setPersonnelModal(false)}>
-                  <h2 className="text-xl font-semibold px-2 md:px-6 py-2 text-gray-800 dark:text-white border-b border-neutral-300">
-                    Total Personnels Summary
-                  </h2>
-
+                <BlurModal isOpen={personnelModal} onClose={() => setPersonnelModal(false)}>
                   <div className="p-2 md:p-10 mx-auto overflow-hidden max-w-[75rem]">
                     <Slider {...sliderSettings} className="site-cards-slider">
                       {siteCols.map(({ key: siteKey, label }) => (
@@ -663,14 +709,23 @@ const Dashboard = () => {
                     
                     {/* Scale/opacity emphasis on the centered slide */}
                     <style>{`
-                      .site-cards-slider .slick-track { display: flex; align-items: stretch; }
+                      .site-cards-slider .slick-track { display: flex; align-items: stretch;  }
                       .site-cards-slider .slick-slide { padding: 0 12px; }
                       .site-cards-slider .slick-slide > div { display: flex; } /* allow card to stretch */
                       .site-cards-slider .slick-slide { transform: scale(.85); opacity: .65; transition: transform .35s ease, opacity .35s ease; }
                       .site-cards-slider .slick-center { transform: scale(1.05); opacity: 1; z-index: 2; }
+                      .site-cards-slider .slick-list { overflow: visible !important; padding-top: 16px; padding-bottom: 16px; }
+                      .site-cards-slider .slick-track { overflow: visible; }
+                      .site-cards-slider .slick-dots { bottom: -36px; }
+                      .site-cards-slider { position: relative; }
+                      .site-cards-slider .slick-prev,
+                      .site-cards-slider .slick-next {
+                        z-index: 20 !important;
+                        pointer-events: auto;
+                      }
                     `}</style>
                   </div>
-          </Modal>
+          </BlurModal>
         </div >
     );
 };

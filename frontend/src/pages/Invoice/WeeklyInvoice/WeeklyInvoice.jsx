@@ -85,11 +85,9 @@ const WeeklyInvoice = () => {
         const fetchInvoices = async () => {
             if (personnelsList.length > 0 && weeks.length > 0) {
                 const serviceWeeks = weeks.map((week) => week.week);
-                const response = await axios.get(`${API_BASE_URL}/api/weeklyInvoice`, {
-                    params: {
-                        personnelIds: personnelsList.map((personnel) => personnel._id),
-                        serviceWeeks: serviceWeeks,
-                    }
+                const response = await axios.post(`${API_BASE_URL}/api/weeklyInvoice`, {
+                    personnelIds: personnelsList.map((personnel) => personnel._id),
+                    serviceWeeks: serviceWeeks,
                 });
                 setInvoices(response.data.data);
             }
@@ -711,12 +709,12 @@ const WeeklyInvoice = () => {
                         <table className="calendar-table text-xs md:text-base w-full border border-neutral-200 dark:border-dark-4">
                             <thead>
                                 <tr className="text-white">
-                                    <th className="sticky top-0 left-0 z-20 bg-primary-800 border-r-[1.5px] border-primary-500 font-medium max-sm:!max-w-25 max-sm:!whitespace-normal">
+                                    <th className="sticky top-0 left-0 z-20 bg-primary-300 border-r-[1.5px] border-primary-500 font-medium max-sm:!max-w-25 max-sm:!whitespace-normal">
                                         Personnel List
                                     </th>
                                     {weeks.map((week) => (
                                         <th
-                                            className="sticky top-0 z-10 bg-primary-800 border-r-[1.5px] border-primary-500 font-light"
+                                            className="sticky top-0 z-10 bg-primary-300 border-r-[1.5px] border-primary-500 font-light"
                                             key={week.week}
                                         >
                                             <div className="flex justify-center gap-2 items-center">
@@ -1081,7 +1079,7 @@ const WeeklyInvoice = () => {
                             <div className="overflow-x-auto rounded-lg">
                                 <table className="min-w-full border-collapse border border-gray-200 dark:border-dark-5 mb-2">
                                     <thead>
-                                        <tr className="bg-primary-800 !text-white">
+                                        <tr className="bg-primary-300 !text-white">
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Date</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Service Type</th>
                                             <th className="text-xs dark:text-gray-400 px-4 py-2 border-r border-primary-600 dark:border-dark-5">Unit Rate</th>
@@ -1274,7 +1272,7 @@ const WeeklyInvoice = () => {
                                     <div className="rounded-lg w-full overflow-hidden">
                                         <table className="min-w-full border-collapse border border-gray-200 dark:border-dark-5">
                                             <thead>
-                                                <tr className="bg-primary-800 text-white">
+                                                <tr className="bg-primary-300 text-white">
                                                     <th className="text-xs px-4 py-2 border-r border-primary-600">Instalment Type</th>
                                                     <th className="text-xs px-4 py-2 border-r border-primary-600">Deducted Amount</th>
                                                 </tr>
@@ -1295,7 +1293,7 @@ const WeeklyInvoice = () => {
                                         <div className="rounded-lg w-full overflow-hidden">
                                             <table className="min-w-full border-collapse border border-gray-200 dark:border-dark-5">
                                                 <thead>
-                                                    <tr className="bg-primary-800 text-white">
+                                                    <tr className="bg-primary-300 text-white">
                                                         <th className="text-xs px-4 py-2 border-r border-primary-600">Deduction Date</th>
                                                         <th className="text-xs px-4 py-2 border-r border-primary-600">Deduction Type</th>
                                                         <th className="text-xs px-4 py-2 border-r border-primary-600">Deducted Amount</th>
@@ -1322,9 +1320,9 @@ const WeeklyInvoice = () => {
                                         <table className="min-w-full border-collapse border border-gray-200 dark:border-dark-5">
                                             <thead>
                                                 <tr>
-                                                    <th colSpan={2} className="text-xs bg-primary-800 text-white px-4 py-1 border-b border-primary-600">Additional Charges</th>
+                                                    <th colSpan={2} className="text-xs bg-primary-300 text-white px-4 py-1 border-b border-primary-600">Additional Charges</th>
                                                 </tr>
-                                                <tr className="bg-primary-800 text-white">
+                                                <tr className="bg-primary-300 text-white">
                                                     <th className="text-xs px-4 py-2 border-r border-primary-600">Charge Title</th>
                                                     <th className="text-xs px-4 py-2 border-r border-primary-600">Charge Amount</th>
                                                 </tr>

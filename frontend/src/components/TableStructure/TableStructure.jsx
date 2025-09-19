@@ -266,9 +266,9 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
             let classNames = `flex items-center justify-center border-[0.5px] border-gray-300 ${dayOfChange && !isFirstCol && '!border-l-3 border-dashed border-l-blue-500'} text-sm p-4 h-full `;
 
             if (isTopLeft) {
-                classNames += ' bg-primary-800 text-white font-bold';
+                classNames += ' bg-primary-300 text-white font-bold';
             } else if (isHeader) {
-                classNames += ' bg-primary-800 text-white font-light ';
+                classNames += ' bg-primary-300 text-white font-light ';
             } else if (isFirstCol) {
                 classNames += ` font-medium p-4 `;
             } else {
