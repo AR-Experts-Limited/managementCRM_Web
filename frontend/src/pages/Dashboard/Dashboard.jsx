@@ -395,32 +395,76 @@ const Dashboard = () => {
     return (
         <div className='w-full p-4 overflow-auto h-full '>
             <h1 className='text-2xl font-bold dark:text-white'>Welcome back, {userDetails?.userName.split(' ')[0]}</h1>
+            <h2 className='text-l text-grey dark:text-white'>Here's an overview of this week's performance.</h2>
                 {/* Info cards */}
-<div className='flex flex-row gap-4 m-1 md:m-8 md:mt-4 justify-center md:justify-between'> {informationCardDetails.map((infoCard) => ( <div onClick={infoCard.title === 'Total Sites' ? () => setPersonnelModal(true) : undefined} className='flex items-center gap-3 w-full md:w-full p-4 overflow-auto bg-primary-200/30 border-[1.5px] border-primary-500/30 text-primary-500 rounded-xl shadow-lg md:shadow-xl dark:text-primary-200 dark:border-primary-200'> <div className='flex items-center justify-center p-5 h-15 bg-white inset-shadow-sm/30 border-[1.5px] border-primary-500/40 rounded-xl'> {infoCard.icon} </div> <div className='grid grid-cols-1 md:grid-cols-12 h-full w-full md:divide-x md:divide-primary-500/30 dark:md:divide-primary-200'> <div className='md:col-span-8 md:pr-4 flex items-center'> <p className='text-lg font-bold'>{infoCard.title}</p> </div> <div className='md:col-span-4 md:pl-4 md:border-l md:border-primary-500/30 dark:md:border-primary-200 flex justify-center items-center'> <p className='text-2xl text-center text-white font-bold'>{infoCard.info}</p> </div> </div> </div> ))} </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 m-1 md:m-8 md:mt-4">
+                  {informationCardDetails.map((infoCard) => (
+                    <button
+                      key={infoCard.title}
+                      onClick={infoCard.title === 'Total Sites' ? () => setPersonnelModal(true) : undefined}
+                      className="group relative w-full rounded-2xl bg-white dark:bg-slate-900
+                                 border border-slate-200/80 dark:border-slate-700/70
+                                 p-0 text-left shadow-sm hover:shadow-md transition-shadow
+                                 ring-2 ring-primary-500/40 dark:ring-offset-slate-900"
+                    >
+                      {/* Condensed body: smaller padding, smaller fonts, lower min-height */}
+                      <div className="flex items-stretch gap-3 p-3 min-h-[72px] md:min-h-[84px]">
+                        <div className="flex-1 flex flex-col justify-between gap-0">
+                          <div className="flex items-start justify-between">
+                            <p className="text-sm md:text-base font-semibold leading-5 text-primary-500 dark:text-slate-100">
+                              {infoCard.title}
+                            </p>
+                          </div>
+                          <p className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                            {infoCard.info}
+                          </p>
+                        </div>
+                  
+                        <div
+                          className="w-10 md:w-13 h-10 md:h-13 self-center rounded-xl
+                                     bg-slate-100 dark:bg-slate-800
+                                     border border-slate-200/70 dark:border-slate-700/70
+                                     shadow-sm flex items-center justify-center
+                                     [&>*]:h-6 [&>*]:w-6 md:[&>*]:h-8 md:[&>*]:w-8"
+                        >
+                          {infoCard.icon}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
                 
                 <div className='flex flex-wrap m-1 mt-4 md:m-8 gap-2 justify-center md:justify-between text-sm'>
                     <div className='grid grid-cols-1 md:grid-cols-12 gap-4 w-full'>
                         {/* Expenses chart */}
-                        <div className='flex flex-col md:col-span-3 shadow-lg md:shadow-xl gap-0 w-full pt-0 pr-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                          <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                            <p className='text-lg font-bold text-primary-500'>
-                              {isOM ? `Site based Expenses` : `Role based Expenses`}
+                        <div className="flex flex-col md:col-span-3 shadow-lg md:shadow-xl gap-0 w-full pt-0 pr-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6">
+                          {/* Header: title left, week pill right */}
+                          <div className="flex items-center bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 justify-between p-4 px-6 rounded-t-xl">
+                            <p className="text-base md:text-lg font-semibold text-primary-800 dark:text-slate-100">
+                              {isOM ? 'Site based Expenses' : 'Role based Expenses'}
                             </p>
-                            <p className='text-xl text-white font-bold'>
+
+                            {/* Week pill (visual only) */}
+                            <div className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/70 px-3 py-1
+                                            text-xs md:text-sm font-semibold text-slate-700 shadow-sm
+                                            dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">
                               {moment().format('GGGG-[W]ww')}
-                            </p>
+                            </div>
                           </div>
 
-                          <div className='pr-8 flex justify-center items-center h-full'>
+                          <div className="pr-8 flex justify-center items-center h-full">
                             {isOM ? (
                               <BarChart
-                                xAxis={[{ data: selectedSites, categoryGapRatio: 0.5, tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, 
+                                xAxis={[{
+                                  data: selectedSites,
+                                  categoryGapRatio: 0.5,
+                                  tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
                                   colorMap: {
                                     type: 'piecewise',
                                     thresholds: [selectedSites[1], selectedSites[2]],
                                     colors: ['#4254FB', '#FFB422', '#FA4F58'],
-                                  } }]}
+                                  }
+                                }]}
                                 yAxis={[{ min: 0, tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' } }]}
                                 series={[{
                                   data: selectedSites.map(s => Number((totalExp?.[s] || 0).toFixed(2))),
@@ -445,24 +489,20 @@ const Dashboard = () => {
                                     colors: ['#4254FB', '#FFB422', '#FA4F58'],
                                   }
                                 }]}
-                                yAxis={[{
-                                  min: 0,
-                                  tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' },
-                                }]}
+                                yAxis={[{ min: 0, tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.5)' } }]}
                                 series={[{
                                   data: [
-                                    Number((totalExp['Compliance'] || 30).toFixed(2)),
-                                    Number((totalExp['On-Site Manager'] || 70).toFixed(2)),
-                                    Number((totalExp['Operational Manager'] || 45).toFixed(2)),
+                                    Number((totalExp['Compliance'] || 0).toFixed(2)),
+                                    Number((totalExp['On-Site Manager'] || 0).toFixed(2)),
+                                    Number((totalExp['Operational Manager'] || 0).toFixed(2)),
                                   ],
-                                  // color: '#4F46E5',          // Indigo 600 (modern, neutral)
-                                  valueFormatter: fmtGBP,    // Tooltip number format
+                                  valueFormatter: fmtGBP,
                                   highlightScope: { fade: 'global', highlight: 'item' },
                                 }]}
                                 height={350}
                                 borderRadius={12}
                                 margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
-                                slotProps={{ legend: { hidden: true }}}  // ensure no legend noise
+                                slotProps={{ legend: { hidden: true } }}
                                 sx={chartSx}
                               />
                             )}
@@ -471,13 +511,17 @@ const Dashboard = () => {
 
                         {/* Hours chart */}
                         <div className='flex flex-col md:col-span-6 shadow-lg md:shadow-xl gap-0 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                              <p className='text-lg font-bold text-primary-500'>
+                            <div className="flex items-center bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 justify-between p-4 px-6 rounded-t-xl">
+                              <p className="text-base md:text-lg font-semibold text-primary-800 dark:text-slate-100">
                                 Average Hours Worked
                               </p>
-                              <p className='text-xl text-white font-bold'>
+
+                              {/* Week pill (visual only) */}
+                              <div className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/70 px-3 py-1
+                                              text-xs md:text-sm font-semibold text-slate-700 shadow-sm
+                                              dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">
                                 {moment().format('GGGG-[W]ww')}
-                              </p>
+                              </div>
                             </div>
                             <div className='pr-8 flex justify-center items-center h-full'>
                               <LineChart
@@ -491,7 +535,7 @@ const Dashboard = () => {
                                   tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.55)' },
                                 }]}
                                 series={[{
-                                  data: [10, 30, 20, 35, 45, 25, 35],
+                                  data: dailyHoursThisWeek,
                                   area: true,
                                   curve: 'linear',        
                                   color: '#4F46E5',          // match your brand
@@ -597,13 +641,17 @@ const Dashboard = () => {
 
                         {/* Current Week – Daily Expense (stacked) */}
                         <div className='flex flex-col md:col-span-9 shadow-lg md:shadow-xl gap-3 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                          <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                            <p className='text-lg font-bold text-primary-500'>
-                              {isOM ? 'Daily Expense by Site' : 'Daily Expense by Role'}
+                          <div className="flex items-center bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 justify-between p-4 px-6 rounded-t-xl">
+                            <p className="text-base md:text-lg font-semibold text-primary-800 dark:text-slate-100">
+                              {isOM ? "Daily Expense by Site" : "Daily Expense by Role"}
                             </p>
-                            <p className='text-xl text-white font-bold'>
-                              {moment().startOf('week').format('DD MMM')} – {moment().endOf('week').format('DD MMM')}
-                            </p>
+                          
+                            {/* Week pill (visual only) */}
+                            <div className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/70 px-3 py-1
+                                            text-xs md:text-sm font-semibold text-slate-700 shadow-sm
+                                            dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">
+                              {moment().format('GGGG-[W]ww')}
+                            </div>
                           </div>
                           <div className='pr-8 flex justify-center items-center h-full'>
                             {(() => {
@@ -619,7 +667,6 @@ const Dashboard = () => {
                                   ? (sites.find(s => s.siteKeyword === name)?.siteName || name)
                                   : name,
                                 data: (dailyStackExpenseThisWeek?.[name] || new Array(7).fill(0)),
-                                stack: 'total',
                                 valueFormatter: fmtGBP,
                               }));
                             
@@ -647,20 +694,24 @@ const Dashboard = () => {
 
                         {/* Additional Charges chart */}
                         <div className='flex flex-col md:col-span-3 shadow-lg md:shadow-xl gap-3 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
-                            <div className='flex flex-col p-4 pl-8 gap-0 w-full bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 p-2 rounded-t-xl'>
-                              <p className='text-lg font-bold text-primary-500'>
+                            <div className="flex items-center bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 justify-between p-4 px-6 rounded-t-xl">
+                              <p className="text-base md:text-lg font-semibold text-primary-800 dark:text-slate-100">
                                 Additional Charges
                               </p>
-                              <p className='text-xl text-white font-bold'>
+                            
+                              {/* Week pill (visual only) */}
+                              <div className="inline-flex items-center rounded-full border border-slate-300/70 bg-white/70 px-3 py-1
+                                              text-xs md:text-sm font-semibold text-slate-700 shadow-sm
+                                              dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">
                                 {moment().format('GGGG-[W]ww')}
-                              </p>
+                              </div>
                             </div>
                             <BarChart
                                 xAxis={[{ data: ['Addition', 'Deduction'], tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' }, categoryGapRatio: 0.7,
                                  colorMap: {
                                     type: 'piecewise',
                                     thresholds: ['Deduction'],
-                                    colors: ['#42fb95ff', '#FA4F58'],
+                                    colors: ['#4fc033ff', '#FA4F58'],
                                   }
                                 }]}
                                 yAxis={[{
