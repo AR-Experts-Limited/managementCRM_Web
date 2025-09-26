@@ -62,10 +62,9 @@ const Sidebar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
     //    { path: "/live-operations", name: "Live Operations", icon: <BiStation className="text-[1.5rem]" /> },
         { path: "/rota", name: "Rota", icon: <i className="fi fi-rr-payroll-calendar text-[1.5rem]"></i> },
         { path: "/working-hours", name: "Working Hours", icon: <i className="fi fi-rr-time-half-past text-[1.5rem]"></i> },
-    //    { path: "/deductions", name: "Deductions", icon: <i className="fi fi-rs-cheap-dollar text-[1.5rem]"></i> },
-    //    { path: "/incentives", name: "Incentives", icon: <i className="fi fi-rr-handshake-deal-loan text-[1.5rem]"></i> },
         { path: "/manage-payments", name: "Manage Payments", icon: <i className="fi fi-rr-money-bill-wave text-[1.5rem]"></i> },
         { path: "/add-ons", name: "Additional Charges", icon: <i className="fi fi-rr-plus-hexagon text-[1.5rem]"></i> },
+        { path: "/spending-insights", name: "Spending Insights", icon: <i className="fi fi-rr-plus-hexagon text-[1.5rem]"></i> },
         { path: "/print-invoices", name: "Print Invoices", icon: <i className="fi fi-rr-print text-[1.5rem]"></i> },
         { path: "/manage-users", name: "Manage Users", icon: <i className="fi fi-rr-id-card-clip-alt text-[1.5rem]"></i> },
     ];
@@ -74,17 +73,18 @@ const Sidebar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
         <div
             ref={containerRef}
             className={`
-                relative sidebar h-full bg-neutral-200/50 dark:bg-dark-2 border-r border-stone-400/40 overflow-auto
-        transition-all duration-300 origin-left
-                ${sidebarIsOpen ? 'w-22.5 md:w-60' : 'w-0 md:w-22.5'}
+                relative sidebar z-[500] border-r border-stone-400/40 overflow-hidden
+        transition-all duration-300 origin-left mt-2
+                ${sidebarIsOpen ? 'w-22.5 md:w-60' : 'w-full h-auto'}
     `}
         // onMouseEnter={handleMouseEnter}
         // onMouseLeave={handleMouseLeave}
         >
 
-            <div className="mb-12">
-                <div className="flex flex-col justify-center items-center w-full p-2 gap-1">
-                    <Tooltip.Provider delayDuration={500}>
+            <div className="mb-2">
+                <div className="flex flex-row justify-center items-center w-full p-2 gap-1">
+                    <div className="flex flex-row bg-neutral-300/50 rounded-3xl dark:bg-dark-2 w-fit overflow-hidden shadow-md backdrop-blur-md">
+                        <Tooltip.Provider delayDuration={500}>
                         {menuItems
                             .filter(item => accessDetails?.includes(item.name))
                             .map((item) => {
@@ -92,18 +92,21 @@ const Sidebar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
                                     <div
                                         key={item.path}
                                         ref={(el) => (itemRefs.current[item.path] = el)}
-                                        className='w-full'
                                     >
                                         <NavLink
                                             to={item.path}
                                             className={({ isActive }) =>
-                                                `w-18 h-19 relative  text-base md:p-3.5 flex justify-center items-center gap-1  overflow-hidden 
-                                              dark:hover:bg-dark-5 rounded   hover:bg-primary-50/10 group
-                                                ${isActive ? "bg-primary-300/20 !font-bold text-primary-800" : ""}`
+                                              [
+                                                "h-12 w-40 relative text-base md:p-0 flex justify-center items-center gap-4 overflow-hidden",
+                                                "dark:hover:bg-dark-5 hover:bg-primary-50/10 group",
+                                                isActive
+                                                  ? "bg-primary-300/20 !font-bold text-primary-800 after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2 after:bottom-0 after:h-[4px] after:w-1/2 after:bg-primary-200 after:rounded-full"
+                                                  : "after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-0 after:bg-transparent"
+                                              ].join(' ')
                                             }
                                         >
-                                            <div className="flex flex-col gap-3 items-center !text-gray-700 dark:!text-dark-7 hover:!text-primary-500 justify-center">
-                                                <div className="w-4 h-4">{item.icon}</div>
+                                            <div className="flex flex-row gap-2 w-25 items-center !text-gray-700 dark:!text-dark-7 hover:!text-primary-500 justify-left">
+                                                <div className="h-8">{item.icon}</div>
                                                 <div className={`text-center font-light text-xs whitespace-break`}>
                                                     {item.name}
                                                 </div>
@@ -134,7 +137,8 @@ const Sidebar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
                             })
 
                         }
-                    </Tooltip.Provider>
+                        </Tooltip.Provider>
+                    </div>
                 </div>
             </div>
         </div>

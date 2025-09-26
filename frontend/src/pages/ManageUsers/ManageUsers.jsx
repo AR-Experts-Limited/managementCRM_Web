@@ -135,12 +135,12 @@ const ManageUsers = () => {
                 </div>
             </div>
             <h2 className='text-xl mb-3 font-bold dark:text-white'>Manage Users</h2>
-            <div className='flex flex-col w-full h-full bg-white rounded-lg border border-neutral-200 overflow-auto'>
-                <div className='z-15 sticky top-0 flex justify-between items-center bg-white/60 backdrop-blur-md p-3 rounded-t-lg border-b border-neutral-200'>
-                    <div>{userMode === 'create' ? 'Add User' : 'Users List'}</div>
+            <div className='flex flex-col w-full h-full bg-white rounded-3xl border border-neutral-200 overflow-auto'>
+                <div className='z-15 sticky top-0 flex justify-between items-center bg-white/60 backdrop-blur-md p-2 rounded-t-3xl border-b border-neutral-200'>
+                    <div className='md:ml-3'>{userMode === 'create' ? 'Add User' : 'Users List'}</div>
                     {userMode === 'view' &&
                         <div>
-                            <button onClick={() => setUserMode('create')} className='text-white bg-green-500 rounded-md text-sm px-2 py-1'>Add User</button>
+                            <button onClick={() => setUserMode('create')} className='text-white bg-green-500 rounded-3xl text-sm px-3 py-2'>Add User</button>
                         </div>
                     }
                 </div>

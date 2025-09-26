@@ -180,7 +180,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
 
   return (
     <div
-      className={`flex items-center h-10 p-1 pr-1 gap-2 border border-neutral-300 rounded-lg justify-between bg-stone-50 text-neutral-500 transition-all duration-300 ${search ? "w-auto" : "max-w-fit"
+      className={`flex items-center h-10 p-1 pr-3 gap-2 border border-neutral-300 rounded-3xl justify-between bg-stone-50 text-neutral-500 transition-all duration-300 ${search ? "w-auto" : "max-w-fit"
         } dark:bg-dark dark:border-dark-4`}
     >
       <div className="flex h-full relative justify-between items-center">
@@ -193,12 +193,12 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
             type="text"
             value={searchVal}
             onChange={handleSearchValChange}
-            className="h-full p-2 pr-12 md:pr-24 w-full rounded-sm border-[1.5px] border-neutral-300 bg-white outline-none transition focus:border-primary-500 disabled:cursor-default disabled:bg-gray-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary-500 dark:disabled:bg-dark"
+            className="h-full p-2 pr-12 md:pr-24 w-full rounded-3xl border-[1.5px] border-neutral-300 bg-white outline-none transition focus:border-primary-500 disabled:cursor-default disabled:bg-gray-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary-500 dark:disabled:bg-dark"
           />
           <select
             value={searchCol}
             onChange={handleSearchColChange}
-            className="absolute w-10 md:w-20 text-xs text-white bg-neutral-400/70 rounded-xs overflow-hidden right-2 top-1/2 -translate-y-1/2 outline-none dark:bg-dark-2 dark:border dark:border-dark-4 dark:disabled:bg-dark"
+            className="absolute pl-1 w-10 md:w-21 text-xs text-white bg-neutral-400/70 rounded-2xl overflow-hidden right-2 top-1/2 -translate-y-1/2 outline-none dark:bg-dark-2 dark:border dark:border-dark-4 dark:disabled:bg-dark"
           >
             {colKeys.map(
               (col) =>
@@ -211,7 +211,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
           </select>
         </div>
         <button
-          className={`relative p-2 rounded-md hover:bg-neutral-200 hover:text-white ${search ? "bg-neutral-300 dark:bg-dark-3 text-white" : ""
+          className={`relative p-2 rounded-3xl hover:bg-neutral-200 hover:text-white ${search ? "bg-neutral-300 dark:bg-dark-3 text-white" : ""
             } dark:hover:bg-dark-3 group`}
           onClick={toggleSearch}
         >
@@ -224,7 +224,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
       <div>
         <button
           onClick={downloadExcel}
-          className="relative p-1 rounded-md hover:bg-neutral-200 hover:text-white dark:hover:bg-dark-3 group"
+          className="relative p-1 rounded-3xl hover:bg-neutral-200 hover:text-white dark:hover:bg-dark-3 group"
         >
           <FaCloudDownloadAlt size={21} />
           <div className="z-10 absolute left-1/2 top-full -translate-x-1/2 whitespace-normal rounded-sm bg-black/40 mt-1 backdrop-blur-md px-1 text-[0.6rem] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity dark:bg-dark-4">
@@ -235,7 +235,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
       <div className="relative">
         <button
           onClick={toggleFilter}
-          className={`relative p-1 rounded-md hover:bg-neutral-200 hover:text-white ${filterOpen ? "bg-neutral-200 hover:text-white dark:bg-dark-3" : ""
+          className={`relative p-1 rounded-3xl hover:bg-neutral-200 hover:text-white ${filterOpen ? "bg-neutral-200 hover:text-white dark:bg-dark-3" : ""
             } dark:hover:bg-dark-3 group`}
         >
           <IoFilterCircleSharp size={21} />
@@ -244,7 +244,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
           </div>
         </button>
         {filterOpen && (
-          <div className="absolute w-50 rounded-lg z-70 px-6 py-2 top-7 right-0 flex flex-col gap-1 bg-white border border-neutral-200 dark:bg-dark/30 dark:border-dark-3 dark:text-white">
+          <div className="absolute w-50 rounded-3xl z-70 px-6 py-2 top-7 right-0 flex flex-col gap-1 bg-white border border-neutral-200 dark:bg-dark/30 dark:border-dark-3 dark:text-white">
             {colKeys.map((col) => (
               <div key={col} className="w-fit p-2 flex gap-3 text-sm">
                 <input
@@ -262,7 +262,7 @@ const TableFeatures = ({ columns, setColumns, content, setContent, repopulate, s
       <div>
         <button
           onClick={handlePrint}
-          className="relative p-1 rounded-md hover:bg-neutral-200 hover:text-white dark:hover:bg-dark-3 group"
+          className="relative p-1 rounded-3xl hover:bg-neutral-200 hover:text-white dark:hover:bg-dark-3 group"
         >
           <IoPrint size={18} />
           <div className="z-10 absolute left-1/2 top-full -translate-x-1/2 whitespace-normal break-words rounded-sm bg-black/40 mt-1 backdrop-blur-md px-1 text-[0.6rem] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity dark:bg-dark-4">

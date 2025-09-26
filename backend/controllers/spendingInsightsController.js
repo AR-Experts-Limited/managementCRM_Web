@@ -1,3 +1,9 @@
+const getModels = (req) => ({
+  Personnel: req.db.model('Personnel', require('../models/Personnel').schema),
+  DayInvoice: req.db.model('DayInvoice', require('../models/DayInvoice').schema),
+  ProfitLoss: req.db.model('ProfitLoss', require('../models/ProfitLoss').schema)
+});
+
 const addSpendingInsight = async (req, res) => {
   const { site, week, startDate, endDate } = req.body;
   const query = {};
@@ -80,4 +86,51 @@ const addSpendingInsight = async (req, res) => {
   }
 }
 
-module.exports = { addSpendingInsight };
+const fetchProfitLoss = async (req, res) => {
+  const ProfitLoss = req.db.model('ProfitLoss', require('../models/ProfitLoss').schema);
+  const { week } = req.query;
+  try {
+    const profitLoss = await ProfitLoss.find({ week });
+    res.status(200).json(profitLoss);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching Profit Loss values!' });
+  }
+}
+
+// POST /api/profitloss (upsert version)
+const addProfitLoss = async (req, res) => {
+  const ProfitLoss = req.db.model('ProfitLoss', require('../models/ProfitLoss').schema);
+
+  try {
+    let { personnelId, week, profitLoss, revenue, addedBy } = req.body || {};
+    const pid = personnelId && typeof personnelId === 'object' ? personnelId._id : personnelId;
+
+    if (!pid || !week) {
+      return res.status(400).json({ message: 'personnelId and week are required' });
+    }
+
+    const toNum = (v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    const doc = await ProfitLoss.findOneAndUpdate(
+      { personnelId: pid, week: String(week) },
+      {
+        $set: {
+          profitLoss: toNum(profitLoss),
+          revenue: toNum(revenue),
+          addedBy: typeof addedBy === 'string' ? addedBy : JSON.stringify(addedBy || {})
+        }
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(201).json(doc);
+  } catch (error) {
+    console.error('addProfitLoss error:', error);
+    return res.status(500).json({ message: 'Error creating/updating Profit/Loss entry!' });
+  }
+};
+
+module.exports = { addSpendingInsight, fetchProfitLoss, addProfitLoss };

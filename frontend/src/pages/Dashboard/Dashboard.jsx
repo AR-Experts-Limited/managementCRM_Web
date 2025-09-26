@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useId } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { FiUserCheck, FiMapPin } from "react-icons/fi";
 import { PiCardholder } from "react-icons/pi";
@@ -54,6 +54,23 @@ const Dashboard = () => {
       '#06B6D4', // Cyan
       '#A855F7', // Purple
     ];
+
+    // Theme accents (tweak if your primary palette differs)
+    const PRIMARY_500 = '#8B5CF6';   // violet-500 accent for strokes/marks
+    const PRIMARY_800 = '#5B21B6';
+    const PRIMARY_GRID = 'rgba(139, 92, 246, 0.15)'; // subtle purple grid
+
+    const GREEN_STROKE = '#16A34A';  // emerald-600
+    const GREEN_FILL   = 'rgba(34, 197, 94, 0.22)';
+
+    const RED_STROKE   = '#DC2626';  // red-600
+    const RED_FILL     = 'rgba(239, 68, 68, 0.28)';
+
+    const uid = useId().replace(/:/g, '');          // unique per component; safe for url(#id)
+    const GREEN_GRAD_ID = `hours-green-${uid}`;
+    const RED_GRAD_ID   = `hours-red-${uid}`;
+
+    const EMPTY_FMT = () => null;    // suppress extra tooltip rows
 
     // Derived helpers
     const isOM = userDetails?.role === 'Operational Manager';
@@ -301,6 +318,31 @@ const Dashboard = () => {
       if (anyPersonnels) fetchAppData();
     }, [byRole]);
 
+    const useSlopeAreas = (data) => {
+      return useMemo(() => {
+        const d = Array.isArray(data) ? data.map(v => (v == null ? null : Number(v))) : [];
+        const n = d.length;
+        const up = Array(n).fill(null);   // upward segments only
+        const down = Array(n).fill(null); // downward segments only
+        for (let i = 1; i < n; i++) {
+          const a = d[i - 1], b = d[i];
+          if (a == null || b == null) continue;
+          if (b > a) {          // strictly upward
+            up[i - 1] = a; up[i] = b;
+          } else if (b < a) {   // strictly downward
+            down[i - 1] = a; down[i] = b;
+          }
+          // flats (b === a) stay null to avoid coloring
+        }
+        return { posArea: up, negArea: down };
+      }, [data]);
+    };
+
+    const testHours = [0, 20, 10, 40, 50, 25, 70];
+    //const hoursWorkedForGraph = dailyHoursThisWeek;
+    const hoursWorkedForGraph = testHours;
+    const { posArea, negArea } = useSlopeAreas(testHours);
+
     const countFor = (siteKey, roleName) => {
       const row = roleSiteCounts.find(r => r.role === roleName);
       return row?.[siteKey] ?? 0;
@@ -393,7 +435,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className='w-full p-4 overflow-auto h-full '>
+        <div className='w-full p-4 pt-0 overflow-auto h-full '>
             <h1 className='text-2xl font-bold dark:text-white'>Welcome back, {userDetails?.userName.split(' ')[0]}</h1>
             <h2 className='text-l text-grey dark:text-white'>Here's an overview of this week's performance.</h2>
                 {/* Info cards */}
@@ -509,6 +551,24 @@ const Dashboard = () => {
                           </div>
                         </div>
 
+                        {/* Hidden SVG defs that the chart can reference */}
+                        <svg width={0} height={0} aria-hidden focusable="false"
+                             style={{ position: 'absolute', overflow: 'hidden' }}>
+                          <defs>
+                            {/* Upward (green) vertical gradient */}
+                            <linearGradient id={GREEN_GRAD_ID} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%"   stopColor={GREEN_STROKE} stopOpacity="0.4" />
+                              <stop offset="100%" stopColor={PRIMARY_500} stopOpacity="0.1" />
+                            </linearGradient>
+
+                            {/* Downward (red) vertical gradient */}
+                            <linearGradient id={RED_GRAD_ID} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%"   stopColor={RED_STROKE} stopOpacity="0.4" />
+                              <stop offset="100%" stopColor={PRIMARY_500}   stopOpacity="0.1" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+
                         {/* Hours chart */}
                         <div className='flex flex-col md:col-span-6 shadow-lg md:shadow-xl gap-0 w-full p-0 bg-white/30 border-[1.5px] border-neutral-200 rounded-xl dark:bg-dark-5 dark:border-dark-6'>
                             <div className="flex items-center bg-primary-200/30 border-[1.5px] border-primary-500/30 dark:border-primary-200 justify-between p-4 px-6 rounded-t-xl">
@@ -525,50 +585,122 @@ const Dashboard = () => {
                             </div>
                             <div className='pr-8 flex justify-center items-center h-full'>
                               <LineChart
+                                axisHighlight={{ x: 'line', y: 'none' }}
                                 xAxis={[{
                                   data: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                                   scaleType: 'point',
-                                  tickLabelStyle: { fontSize: 12, fontWeight: 600, fill: 'rgba(15,23,42,.7)' },
+                                  tickLabelStyle: { fontSize: 12, fontWeight: 700, fill: 'rgba(17,24,39,.85)' },
                                 }]}
                                 yAxis={[{
                                   min: 0,
-                                  tickLabelStyle: { fontSize: 11, fill: 'rgba(15,23,42,.55)' },
+                                  tickLabelStyle: { fontSize: 11, fontWeight: 600, fill: 'rgba(17,24,39,.6)' },
                                 }]}
-                                series={[{
-                                  data: dailyHoursThisWeek,
-                                  area: true,
-                                  curve: 'linear',        
-                                  color: '#4F46E5',          // match your brand
-                                  valueFormatter: fmtHours,  // tooltip format
-                                  highlightScope: { fade: 'global', highlight: 'series' },
-                                  showMark: true,
-                                }]}
+                                series={[
+                                  // Upward (green) area
+                                  {
+                                    data: posArea,
+                                    area: true,
+                                    curve: 'linear',
+                                    color: `url(#${GREEN_GRAD_ID})`,
+                                    valueFormatter: EMPTY_FMT,
+                                    highlightScope: { fade: 'none', highlight: 'series' },
+                                    connectNulls: false,
+                                    showMark: false,
+                                  },
+                                  // Downward (red) area
+                                  {
+                                    data: negArea,
+                                    area: true,
+                                    curve: 'linear',
+                                    color: `url(#${RED_GRAD_ID})`,
+                                    valueFormatter: EMPTY_FMT,
+                                    highlightScope: { fade: 'none', highlight: 'series' },
+                                    connectNulls: false,
+                                    showMark: false,
+                                  },
+                                  // Upward stroke
+                                  {
+                                    data: posArea,
+                                    area: false,
+                                    curve: 'linear',
+                                    color: GREEN_STROKE,
+                                    valueFormatter: EMPTY_FMT,
+                                    highlightScope: { fade: 'none', highlight: 'series' },
+                                    connectNulls: false,
+                                    showMark: false,
+                                  },
+                                  // Downward stroke
+                                  {
+                                    data: negArea,
+                                    area: false,
+                                    curve: 'linear',
+                                    color: RED_STROKE,
+                                    valueFormatter: EMPTY_FMT,
+                                    highlightScope: { fade: 'none', highlight: 'series' },
+                                    connectNulls: false,
+                                    showMark: false,
+                                  },
+                                  // Invisible driver (single tooltip row) + purple markers
+                                  {
+                                    id: 'markers',
+                                    data: hoursWorkedForGraph,
+                                    area: false,
+                                    curve: 'linear',
+                                    color: 'transparent',       // hide line
+                                    valueFormatter: fmtHours,   // the only tooltip text
+                                    highlightScope: { fade: 'none', highlight: 'series' },
+                                    connectNulls: false,
+                                    showMark: true,             // we’ll style these marks below
+                                  },
+                                ]}
                                 height={350}
                                 margin={{ top: 28, right: 16, bottom: 28, left: 28 }}
                                 slotProps={{ legend: { hidden: true } }}
                                 sx={{
-                                  // hide hard axis lines/ticks
-                                  '& .MuiChartsAxis-line': { stroke: 'transparent' },
-                                  '& .MuiChartsAxis-tick': { stroke: 'transparent' },
-                                
-                                  // subtle horizontal grid
+                                  // Axes
+                                  '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': { stroke: 'transparent' },
                                   '& .MuiChartsGrid-root line': {
-                                    stroke: 'rgba(148,163,184,.25)',   // slate-400 @ 25%
+                                    stroke: PRIMARY_GRID,       // purple-tinted grid
                                     strokeDasharray: '2 6',
                                   },
                                 
-                                  // thicker line
-                                  '& .MuiLineElement-root': { strokeWidth: 2.5 },
+                                  // Lines: thicker, rounded, soft shadow
+                                  '& .MuiLineElement-root': {
+                                    strokeWidth: 3,
+                                    strokeLinecap: 'round',
+                                    strokeLinejoin: 'round',
+                                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.15))',
+                                  },
                                 
-                                  // clean filled area
-                                  '& .MuiAreaElement-root': { opacity: 0.18 },
+                                  // Ensure areas don’t muddy each other
+                                  '& .MuiAreaElement-root': {
+                                    mixBlendMode: 'multiply',
+                                  },
                                 
-                                  // small white markers with colored stroke
-                                  '& .MuiMarkElement-root': {
-                                    r: 3.5,
-                                    fill: '#fff',
-                                    stroke: '#4F46E5',
+                                  // Invisible driver line must stay invisible
+                                  '& .MuiLineElement-series-driver': { stroke: 'transparent' },
+                                
+                                  // Purple markers from the driver series (index 4)
+                                  '& .MuiMarkElement-series-markers': {
+                                    r: 4.5,
+                                    fill: PRIMARY_500,
+                                    stroke: '#fff',
                                     strokeWidth: 2,
+                                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.15))',
+                                  },
+                                
+                                  // Optional: slight rounding on area tops for a softer look
+                                  '& .MuiAreaElement-series-0, & .MuiAreaElement-series-1': {
+                                    // browsers ignore rx/ry on paths, but keep here in case of future support
+                                    // and to document intent. The visual softness mainly comes from blend + shadow above.
+                                  },
+                                
+                                  // Make the hover vertical line solid and primary-800
+                                  '& .MuiChartsAxisHighlight-root': {
+                                    stroke: PRIMARY_500,
+                                    strokeDasharray: '0',   // solid
+                                    strokeWidth: 2,
+                                    opacity: 0.5,
                                   },
                                 }}
                               />

@@ -30,6 +30,7 @@ import ResetPasswordRequest from './pages/Login/ResetPasswordRequest';
 import ResetPasswordForm from './pages/Login/ResetPasswordForm';
 import UpdatePassword from './pages/UpdatePassword/UpdatePassword';
 import PrivacyPolicy from './pages/LandingPage/PrivacyPolicy/PrivacyPolicy';
+import SpendingInsights from './pages/SpendingInsights/SpendingInsights';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -63,7 +64,7 @@ function App() {
     { path: "/manage-payments", name: "Manage Payments", component: DailyInvoice },
     { path: "/add-ons", name: "Additional Charges", component: AdditionalCharges },
     { path: "/print-invoices", name: "Print Invoices", component: WeeklyInvoice },
-  //  { path: "/profit-loss", name: "Profit / Loss", component: ProfitLoss },
+    { path: "/spending-insights", name: "Spending Insights", component: SpendingInsights },
     { path: "/working-hours", name: "Working Hours", component: WorkingHours },
     { path: "/manage-users", name: "Manage Users", component: ManageUsers },
   //  { path: "/settings", name: "Application Settings", component: ApplicationSettings },
@@ -88,9 +89,9 @@ function App() {
     <div className="app fixed bg-stone-100 dark:bg-dark-3 w-screen h-screen flex flex-col">
       {!hideLayout && <Navbar sidebarIsOpen={sidebarIsOpen} setSidebarIsOpen={setSidebarIsOpen} />}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
         {!hideLayout && (<>
-          <div className={`transition-all duration-300 ${sidebarIsOpen ? 'w-22.5 md:w-60' : 'w-0 md:w-22.5'}`}>
+          <div className={`transition-all duration-300 ${sidebarIsOpen ? 'w-22.5 md:w-60' : 'w-full'}`}>
             <Sidebar sidebarIsOpen={sidebarIsOpen} setSidebarIsOpen={setSidebarIsOpen} />
           </div>
           <div

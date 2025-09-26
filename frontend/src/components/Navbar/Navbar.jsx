@@ -42,7 +42,7 @@ const menuItems = [
     { path: "/manage-summary", name: "Manage Summary", icon: <HiOutlineListBullet size={20} /> },
     { path: "/manage-payments", name: "Manage Payments", icon: <span className='manage-payments-symbol'>£</span> },
     { path: "/print-invoices", name: "Print Invoices", icon: <BiPrinter size={20} /> },
-    { path: "/profit-loss", name: "Profit / Loss", icon: <BiLineChart size={20} /> },
+    { path: "/spending-insights", name: "Spending Insights", icon: <BiLineChart size={20} /> },
 ];
 
 const Navbar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
@@ -105,26 +105,17 @@ const Navbar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
 
 
     return (
-        <div className="navbar z-500 p-2 md:p-5 flex items-center justify-between h-18 bg-neutral-50 w-screen border-b border-stone-400/40 dark:bg-dark dark:text-white">
-            <div className="flex-1 visible md:invisible">
-                <button
-                    className={` ${sidebarIsOpen === 2 ? 'bg-neutral-200 text-white' : ''} rounded-lg p-2 hover:bg-neutral-200 hover:text-white`}
-                    onClick={() => setSidebarIsOpen(prev => (prev === 2 ? 0 : 2))}
-                >
-                    <IoChevronForward
-                        className={`transform transition duration-500 ${sidebarIsOpen ? 'rotate-180' : ''}`}
-                        size={20}
-                    />
-                </button>
-            </div>
-            <div className="justify-self-start">
-                <img className="h-45 w-45" src="/bizalign.png" />
+        <div className="navbar z-500 p-2 md:p-5 flex items-center justify-between h-18 bg-primary-600/80 w-screen border-b border-stone-400/40 dark:bg-dark dark:text-white">
+            
+            <div className="justify-self-start flex flex-row items-center gap-0">
+                <img className="h-20 w-20" src="/bizalign.png" />
+                <h1 className="uppercase text-white font-[600] tracking-[0.12em] text-lg leading-[1]">BIZALIGN HR</h1>
             </div>
 
             <div className="relative flex-1 flex gap-1 md:gap-3 items-center justify-end">
 
-                <button className='relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4' onClick={() => setCalendarOpen(prev => !prev)}>
-                    <i className=" flex items-center fi fi-rr-calendar hover:text-primary-800 text-[1rem]"></i>
+                <button className='relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center text-black rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4' onClick={() => setCalendarOpen(prev => !prev)}>
+                    <i className=" flex items-center fi fi-rr-calendar hover:text-primary-800 text-[1.25rem] text-white"></i>
                     <div onClick={(e) => e.stopPropagation()} className={`absolute top-12 right-2 rounded-lg border border-neutral-300 shadow-md transition-all duration-300 origin-top-right transform ${calendarOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} >
                         <div ref={calendarRef}></div>
                     </div>
@@ -133,9 +124,9 @@ const Navbar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
 
                 <button
                     onClick={() => setNotificationOpen(prev => !prev)}
-                    className="relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center bg-neutral-100 text-black border border-neutral-200 rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4"
+                    className="relative text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex cursor-pointer justify-center items-center text-black rounded-full hover:text-primary-500 dark:text-white dark:bg-dark-3 dark:border-dark-4"
                 >
-                    <i className="flex items-center fi fi-rr-bell hover:text-primary-800 text-[1rem]"></i>
+                    <i className="flex items-center fi fi-rr-bell hover:text-primary-800 text-[1.25rem] text-white"></i>
                     <div className={`absolute top-12 bg-white/10 backdrop-blur-md right-2 rounded-lg border border-neutral-300 shadow-md transition-all duration-300 origin-top-right transform ${notificationOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}>
                         <NotificationPanel notifications={notification} setNotifications={setNotification} />
                     </div>
@@ -143,17 +134,17 @@ const Navbar = ({ sidebarIsOpen, setSidebarIsOpen }) => {
                         {notification.length < 100 ? notification.length : '99+'}
                     </div>}
                 </button>
-                <div className="text-xs md:text-lg h-8 w-8 md:h-11 md:w-11 flex justify-center items-center rounded-full bg-black text-white">
+                <div className="text-xs md:text-lg ml-1 h-8 w-8 md:h-11 md:w-11 flex justify-center items-center rounded-full bg-black text-white">
                     {userDetails?.userName.split(' ')[0].slice(0, 1).toUpperCase() + userDetails?.userName.split(' ')[1].slice(0, 1).toUpperCase()}
                 </div>
 
                 <div className="flex flex-col md:gap-1 group">
-                    <p className="text-xs hidden md:block">{userDetails?.userName}</p>
+                    <p className="text-xs hidden md:block text-white">{userDetails?.userName}</p>
                     <div className="flex gap-1 items-center justify-between">
-                        <span className="hidden md:block text-xs bg-primary-500 text-white rounded-md px-1.5 py-0.5">{userDetails?.role}</span>
+                        <span className="hidden md:block text-xs bg-neutral-200 text-black rounded-md px-1.5 py-0.5">{userDetails?.role}</span>
                         <button
                             onClick={() => setUserOptionsOpen(prev => !prev)}
-                            className={`rounded-md p-1 hover:bg-neutral-200 hover:text-white`}
+                            className={`rounded-full p-1 hover:bg-neutral-200 hover:text-black text-white`}
                         >
                             <IoChevronDown
                                 className={`transform transition duration-500 ${userOptionsOpen ? 'rotate-180 ' : ''}`}

@@ -39,6 +39,7 @@ const SpendingInsights = () => {
     const [totalServices, setTotalServices] = useState(0);
     const [clientInvoiceAmt, setClientInvoiceAmt] = useState();
     const [incentiveAmt, setIncentiveAmt] = useState();
+    const [profitLossDisplayList, setProfitLossDisplayList] = useState([]);
 
     ////////////////////////////////////////////////////////////////////////////////////
     const [totalExp, setTotalExp] = useState(0);
@@ -89,50 +90,76 @@ const SpendingInsights = () => {
         const weeklyInvoices = response.data.data;
         setWeeklyInvoices(response.data.data);
 
-        //Company Incentive - Not used anywhere in the current Build except displaying and storing from ProfitLoss.
-        const incentiveResponse = await axios.get(`${API_BASE_URL}/api/companyincentive/by-site-week`, {
-          params: {
-            site: selectedSite,
-            week: selectedWeek
-          }
-        });
-        if (incentiveResponse.data) {
-          setIncentiveAmt(incentiveResponse.data.amount);
-        }
-
         //Total Expenses Calculation
         const totalExpenses = weeklyInvoices.reduce((sum, inv) => sum + inv.total, 0);
         setTotalExp(totalExpenses);
+        console.log("Total Expenses = ", totalExpenses);
 
         let totalCount = 0;
 
         weeklyInvoices.forEach((invoice) => {
-          // Base count
-          totalCount += invoice.count || 0;
-        
-          invoice.invoices.forEach((inv) => {
-            // Additional service count
-            if (inv.additionalServiceDetails?.service) {
-              totalCount += 1;
-            }
-          });
+          totalCount += invoice.invoices.length || 0;
         });
 
         setTotalServices(totalCount);
 
-        console.log(deductionBreakdown);
-        console.log(installmentBreakdown);
-
-        //Unique Services with Profit Loss
-        const plBySiteWeek = await axios.get(`${API_BASE_URL}/api/profitloss/week-site`, {
-          params: {
-            site: selectedSite,
-            serviceWeek: selectedWeek,
-          }
+        // Unique Services with Profit Loss (LEFT JOIN weeklyInvoices ⟕ profitloss)
+        const { data: profitLossRows = [] } = await axios.get(`${API_BASE_URL}/api/spending-insights`, {
+          params: { week: selectedWeek }
         });
-    
-        //Week + site level Profit/Loss (total)
-        setTotalPL(0);
+
+        // Index PL rows by (personnelId, week) and aggregate
+        const plIndex = profitLossRows.reduce((acc, pl) => {
+          const personnelKey = pl?.personnelId?._id ?? pl?.personnelId;
+          const key = `${personnelKey}::${pl.week}`;
+          const agg = acc[key] ?? { profitLoss: 0, revenue: 0, hasRevenue: false };
+        
+          agg.profitLoss += Number(pl?.profitLoss ?? 0);
+          if (pl?.revenue != null) {
+            agg.revenue += Number(pl.revenue);
+            agg.hasRevenue = true;
+          }
+        
+          acc[key] = agg;
+          return acc;
+        }, {});
+
+        // Perform LEFT JOIN: keep every weeklyInvoice, attach PL if present; else nulls
+        const matchedPLList = weeklyInvoices.map((invoice) => {
+          const personnelKey = invoice?.personnelId?._id ?? invoice?.personnelId;
+          const key = `${personnelKey}::${invoice.week}`;
+          const agg = plIndex[key];
+        
+          // Try to derive a numeric revenue if persisted or derivable from PL + expenses
+          let revenueNum = null;
+          if (agg) {
+            if (agg.hasRevenue) {
+              revenueNum = Number(agg.revenue);
+            } else if (invoice?.total != null && typeof agg.profitLoss === 'number') {
+              revenueNum = Number(invoice.total) + Number(agg.profitLoss);
+            }
+          }
+        
+          // Controlled input expects a string; empty string if not known
+          const revenueStr = revenueNum == null || Number.isNaN(revenueNum) ? '' : String(revenueNum.toFixed(2));
+        
+          // Compute profit/loss if we have a numeric revenue; else null
+          const profitLoss =
+            revenueNum == null || Number.isNaN(revenueNum)
+              ? null
+              : Number((revenueNum - Number(invoice.total || 0)).toFixed(2));
+        
+          return {
+            ...invoice,
+            revenue: revenueStr,   // string for the <input />
+            profitLoss             // number or null
+          };
+        });
+
+        setProfitLossDisplayList(matchedPLList);
+
+        const totalPLAll = Object.values(plIndex).reduce((s, v) => s + Number(v?.profitLoss ?? 0), 0);
+        setTotalPL(totalPLAll);
 
         //Additional Charges
         let charges = [];
@@ -150,36 +177,20 @@ const SpendingInsights = () => {
       }
     }
 
-    const allPersonnels = useMemo(() => {
-      const map = new Map();
-      Object.values(personnelsByRole).forEach(personnelList => {
-        personnelList.forEach(personnel => {
-          map.set(personnel._id, personnel);
-        });
-      });
-      return map;
-    }, [personnelsByRole]);
-
     useEffect(() => {
       if(selectedWeek)
         fetchWeeklyInvoices();
     }, [selectedSite, selectedWeek, selectedRole]);
 
-    const addProfitLoss = async (serviceName, site, week, profitLoss, revenue) => {
+    const addProfitLoss = async (personnelId, week, profitLoss, revenue) => {
         try {
             const response = await axios.post(`${API_BASE_URL}/api/profitloss`, {
-                serviceName: serviceName,
+                personnelId: personnelId,
                 week: week,
-                site: site,
                 profitLoss: profitLoss,
                 revenue: revenue,
                 addedBy: JSON.stringify({ name: userDetails.firstName + userDetails.lastName, email: userDetails.email, role: userDetails.role, addedOn: new Date() })
             });
-            const incentiveResponse = await axios.put(`${API_BASE_URL}/api/companyincentive`, {
-              week: week,
-              site: site,
-              amount: incentiveAmt
-            })
             fetchWeeklyInvoices();
         } catch (error) {
             console.error('Error adding New Profit Loss Entry:', error);
@@ -187,55 +198,106 @@ const SpendingInsights = () => {
     }
 
     const handleData = (serviceObject) => {
-        var site = selectedSite ?? "";
         var week = selectedWeek ?? "";
         addProfitLoss(serviceObject.mainService, selectedSite, week, serviceObject.profitLoss, serviceObject.revenue);
     }
 
-    //const handleAddAllRevenues = () => {
-    //    const totalRevenue = filteredUniqueServices.reduce((sum, service) => {
-    //        const revenue = parseFloat(service.revenue);
-    //        return sum + (isNaN(revenue) ? 0 : revenue);
-    //    }, 0);
-    //
-    //    const invoiceAmount = parseFloat(clientInvoiceAmt);
-    //    const incentiveAmount = incentiveAmt ? parseFloat(incentiveAmt) : 0;
-//
-    //    console.log("Invoice Amount = ", invoiceAmount);
-    //    console.log("Incentive Amount = ", incentiveAmount);
-    //
-    //    //const roundedInvoice = Math.round(invoiceAmount * 100);
-    //    //const roundedTotal = Math.round(totalRevenue * 100);
-    //
-    //    if (invoiceAmount !== (totalRevenue + incentiveAmount)) {
-    //        setToastOpen({
-    //            content: <>
-    //                <p className='text-sm font-bold text-red-500'>Individual service revenues entered and Incentive do not add up to total Client Invoice Amount specified.</p>
-    //            </>
-    //        })
-    //        setTimeout(() => setToastOpen(null), 3000);
-    //        return;
-    //    }
-    //
-    //    // Proceed to call handleData for all services
-    //    filteredUniqueServices.forEach(service => {
-    //      if (service.revenue && parseFloat(service.revenue) > 0) {
-    //        handleData(service);
-    //      }
-    //    });
-    //    setToastOpen({
-    //        content: <>
-    //            <SuccessTick width={20} height={20} />
-    //            <p className='text-sm font-bold text-green-500'>Profit / Loss entries added successfully</p>
-    //        </>
-    //    })
-    //    setClientInvoiceAmt("");
-    //    setIncentiveAmt("");
-    //    setFilteredUniqueServices(prev =>
-    //      prev.map(service => ({ ...service, revenue: "" }))
-    //    );
-    //    setTimeout(() => setToastOpen(null), 3000);
-    //}; 
+    const handleRevenueChange = (rowIndex, value) => {
+      setProfitLossDisplayList((prev) => {
+        const next = [...prev];
+        const row = { ...next[rowIndex] };
+      
+        // Keep the raw input as a string so the input remains controlled
+        row.revenue = value;
+      
+        // Compute numeric PL only if the input can be parsed
+        const revenueNum = value === '' ? NaN : parseFloat(value);
+        if (Number.isNaN(revenueNum)) {
+          row.profitLoss = null;
+        } else {
+          const expenses = Number(row.total || 0);
+          row.profitLoss = Number((revenueNum - expenses).toFixed(2));
+        }
+      
+        next[rowIndex] = row;
+      
+        // Recompute page-level PL (sum only rows with numeric PL)
+        const pageTotalPL = next.reduce(
+          (sum, r) => (typeof r.profitLoss === 'number' ? sum + r.profitLoss : sum),
+          0
+        );
+        setTotalPL(pageTotalPL);
+      
+        return next;
+      });
+    };
+
+    const handleAddAllRevenues = async () => {
+      try {
+        // Pick rows with a numeric revenue
+        const rowsToSave = profitLossDisplayList.filter((r) => {
+          if (typeof r.revenue !== 'string') return false;
+          const n = parseFloat(r.revenue);
+          return !Number.isNaN(n);
+        });
+      
+        if (rowsToSave.length === 0) {
+          setToastOpen({
+            content: <p className='text-sm font-bold text-red-500'>Please enter at least one revenue value.</p>
+          });
+          setTimeout(() => setToastOpen(null), 3000);
+          return;
+        }
+      
+        const week = selectedWeek ?? '';
+      
+        // Persist each personnel-week PL entry
+        await Promise.all(
+          rowsToSave.map((r) => {
+            const personnelId = r?.personnelId?._id ?? r?.personnelId;
+            const revenueNum = parseFloat(r.revenue);
+            const expenses = Number(r.total || 0);
+            const pl = Number((revenueNum - expenses).toFixed(2));
+          
+            return axios.post(`${API_BASE_URL}/api/spending-insights`, {
+              personnelId,
+              week,
+              profitLoss: pl,
+              revenue: revenueNum,
+              addedBy: JSON.stringify({
+                name: `${userDetails.firstName}${userDetails.lastName}`,
+                email: userDetails.email,
+                role: userDetails.role,
+                addedOn: new Date()
+              })
+            });
+          })
+        );
+      
+        setToastOpen({
+          content: <>
+            <SuccessTick width={20} height={20} />
+            <p className='text-sm font-bold text-green-500'>Profit / Loss entries added successfully</p>
+          </>
+        });
+        setTimeout(() => setToastOpen(null), 3000);
+      
+        // Clear local inputs and refresh from server to reflect saved data
+        setProfitLossDisplayList((prev) =>
+          prev.map((r) => ({ ...r, revenue: '', profitLoss: null }))
+        );
+        setTotalPL(0);
+      
+        // Refresh weekly invoices & PL from backend
+        fetchWeeklyInvoices();
+      } catch (err) {
+        console.error('handleAddAllRevenues error:', err);
+        setToastOpen({
+          content: <p className='text-sm font-bold text-red-500'>An error occurred while saving entries.</p>
+        });
+        setTimeout(() => setToastOpen(null), 3000);
+      }
+    };
 
     return (
         <div className='w-full h-full flex flex-col items-center justify-center p-1.5 md:p-3 dark:text-white'>
@@ -298,7 +360,7 @@ const SpendingInsights = () => {
                         </div>
                     </div>
                     <div className={`col-span-1 grid grid-cols-7 p-3 gap-2 md:gap-5 bg-neutral-100/90 dark:bg-dark-2 shadow border-[1.5px] border-neutral-300/80 dark:border-dark-5 rounded-lg dark:!text-white`}>
-                                <InputWrapper title="Total Services">
+                                <InputWrapper title="Total Invoices">
                                     <p className="text-base font-medium text-gray-900 dark:text-white">{totalServices}</p>
                                 </InputWrapper>
                                 <InputWrapper title="Total Expenses">
@@ -348,34 +410,26 @@ const SpendingInsights = () => {
                       </div>
                       <div className='flex flex-col col-span-3 h-full bg-white overflow-hidden dark:bg-dark dark:border-dark-3'>
                         <div className={`grid grid-cols-5 p-3 gap-2 md:gap-5 bg-neutral-100/90 dark:bg-dark-2 rounded-t-lg dark:!text-white`}>
-                            <div className='flex flex-col gap-1'>
-                                <label className="text-xs font-semibold">Client Invoice Amount:</label>
-                                <input type="number" value={clientInvoiceAmt} className='dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 dark:border-dark-5 px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200' onChange={(e) => setClientInvoiceAmt(e.target.value)} placeholder="Enter Value" />
-                            </div>
-                            <div className='flex flex-col gap-1'>
-                                <label className='text-xs font-semibold'>Additional Amount:</label>
-                                <input type="number" value={incentiveAmt} onChange={(e) => setIncentiveAmt(e.target.value)} className='dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 dark:border-dark-5 px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200' placeholder="Enter Value" />
-                            </div>
-                            <button className='w-fit h-full self-end text-white bg-primary-500 hover:bg-primary-300  rounded-lg text-xs md:text-sm px-2 py-1 h-8 md:h-10' onClick={() => {console.log("Adding Revenues")}}>Add Revenues</button>
+                            <button className='w-fit h-full self-end text-white bg-primary-500 hover:bg-primary-300  rounded-lg text-xs md:text-sm px-2 py-1 h-8 md:h-10' onClick={handleAddAllRevenues}>Add Revenues</button>
                             <div></div>
                         </div>
                         <div className='flex-grow overflow-y-auto p-2 border border-neutral-300 shadow rounded-b-lg'>
-                          {weeklyInvoices.length == 0 &&
+                          {profitLossDisplayList.length == 0 &&
                             <h3 className='flex p-3 justify-center'>No Data</h3>
                           }
-                          { weeklyInvoices.length > 0 &&
+                          { profitLossDisplayList.length > 0 &&
                             <table className='table-general overflow-auto'>
                                 <thead>
                                     <tr className="sticky -top-2 z-3 bg-white dark:bg-dark dark:border-dark-3 border-b border-neutral-200 dark:text-white text-neutral-400">
                                         <th>#</th>
                                         <th>Count</th>
                                         <th>Expenses</th>
-                                        <th>Client Invoice Amount (£)</th>
+                                        <th>Revenue (£)</th>
                                         <th>Profit / Loss</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {weeklyInvoices.map((invoice, index) => {
+                                    {profitLossDisplayList.map((invoice, index) => {
                                         return (
                                             <tr key={index}>
                                                 <td>{index + 1}</td>
@@ -385,7 +439,7 @@ const SpendingInsights = () => {
                                                     <input
                                                         type="number"
                                                         value={invoice?.revenue}
-                                                        onChange={(e) => { console.log("Trying to change value") }}
+                                                        onChange={(e) => handleRevenueChange(index, e.target.value)}
                                                         className="dark:bg-dark-3 bg-white rounded-md border-[1.5px] border-neutral-300 dark:border-dark-5 px-2 py-1 h-8 md:h-10 outline-none focus:border-primary-200"
                                                         placeholder="Enter Revenue"
                                                     />

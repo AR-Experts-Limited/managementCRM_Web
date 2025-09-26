@@ -449,9 +449,9 @@ const Notifications = () => {
       </div>
 
       <h2 className="text-sm md:text-xl mb-2 font-bold dark:text-white">Notifications</h2>
-      <div className="flex-1 flex flex-col w-full h-full bg-white rounded-lg border border-neutral-200 overflow-hidden  dark:bg-dark dark:border-dark-5 dark:text-white">
+      <div className="flex-1 flex flex-col w-full h-full bg-white rounded-3xl border border-neutral-200 overflow-hidden  dark:bg-dark dark:border-dark-5 dark:text-white">
         <div className="z-15 sticky top-0 flex items-center justify-between bg-white backdrop-blur-md p-2 rounded-t-lg border-b border-neutral-200  dark:bg-dark  dark:border-dark-5">
-          <div className="text-sm md:text-base">Notifications List</div>
+          <div className="text-sm md:text-base md:ml-3">Notifications List</div>
           <TableFeatures
             repopulate={repopulate}
             setRepopulate={setRepopulate}

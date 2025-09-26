@@ -385,15 +385,15 @@ const WeeklyInvoice = () => {
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center p-1.5 md:p-3 overflow-hidden dark:text-white rounded-xl">
-            <div className="flex flex-col gap-1 w-full h-full bg-white dark:bg-dark-3 rounded-xl shadow overflow-hidden">
+            <div className="flex flex-col gap-1 w-full h-full bg-white dark:bg-dark-3 rounded-3xl shadow overflow-hidden">
                 <div className={`${toastOpen ? 'opacity-100 translate-y-16' : 'opacity-0'} transition-all ease-in duration-200 border border-stone-200 fixed flex justify-center items-center z-50 backdrop-blur-sm top-4 left-1/2 -translate-x-1/2 bg-stone-400/20 dark:bg-dark/20 p-3 rounded-lg shadow-lg`}>
                     <div className='flex gap-4 justify-around items-center'>
                         {toastOpen?.content}
                     </div>
                 </div>
-                <div className='flex font-bold text-lg justify-between items-center z-5 rounded-t-lg w-full px-3 py-1.5 bg-white dark:bg-dark dark:border-dark-3 border-b border-neutral-200 dark:text-white'>
-                    <h3>Weekly Invoice</h3>
-                    <button onClick={() => setIsFilterOpen(prev => !prev)} className={`rounded-lg p-2 hover:bg-gray-200 hover:text-primary-500 ${isFilterOpen && 'bg-gray-200 text-primary-500'}`}><i class="flex items-center text-[1rem] fi fi-rr-filter-list"></i></button>
+                <div className='flex font-bold text-lg justify-between items-center z-5 rounded-t-3xl w-full px-2 py-2 bg-white dark:bg-dark dark:border-dark-3 border-b border-neutral-200 dark:text-white'>
+                    <h3 className='md:ml-3'>Weekly Invoice</h3>
+                    <button onClick={() => setIsFilterOpen(prev => !prev)} className={`rounded-3xl p-2 hover:bg-gray-200 hover:text-primary-500 ${isFilterOpen && 'bg-gray-200 text-primary-500'}`}><i class="flex items-center text-[1rem] fi fi-rr-filter-list"></i></button>
                 </div >
                 <div className='flex flex-col p-2 overflow-auto'>
                     <div className={`transition-all duration-300 ease-in-out ${isFilterOpen ? 'max-h-40 pb-2 opacity-100 visibility-visible' : 'max-h-0 opacity-0 visibility-hidden'}`}>

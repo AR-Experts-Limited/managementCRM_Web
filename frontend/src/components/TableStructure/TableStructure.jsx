@@ -315,7 +315,7 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
                                             </div>
                                         )}
                                         {personnel.siteChanges && (
-                                            <div className="bg-blue-100 text-blue-700 rounded-md p-2 text-xs w-60  shadow w-fit">
+                                            <div className="bg-blue-100 text-blue-700 rounded-md p-2 text-xs w-60 shadow w-fit">
                                                 <div className="flex gap-4 items-center">
                                                     <i className="flex items-center fi fi-sr-replace"></i>
                                                     <span>Site Changed</span>
@@ -436,12 +436,12 @@ const TableStructure = ({ title, state, setters, tableData, invoiceMap, handleFi
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center p-1.5 md:p-3 overflow-hidden dark:text-white">
-            <div className="flex flex-col w-full h-full bg-white dark:bg-dark-3 rounded-xl shadow overflow-hidden">
-                <div className="flex font-bold text-lg justify-between items-center z-5 rounded-t-lg w-full px-3 py-1.5 bg-white dark:bg-dark dark:border-dark-3 border-b border-neutral-200 dark:text-white">
-                    <h3>{title}</h3>
+            <div className="flex flex-col w-full h-full bg-white dark:bg-dark-3 rounded-3xl shadow overflow-hidden">
+                <div className="flex font-bold text-lg justify-between items-center z-5 rounded-t-lg w-full px-2 py-2 bg-white dark:bg-dark dark:border-dark-3 border-b border-neutral-200 dark:text-white">
+                    <h3 className='md:ml-3'>{title}</h3>
                     <button
                         onClick={() => setIsFilterOpen((prev) => !prev)}
-                        className={`rounded-lg p-2 hover:bg-gray-200 hover:text-primary-500 ${isFilterOpen && 'bg-gray-200 text-primary-500'}`}
+                        className={`rounded-3xl p-2 hover:bg-gray-200 hover:text-primary-500 ${isFilterOpen && 'bg-gray-200 text-primary-500'}`}
                     >
                         <i className="flex items-center text-[1rem] fi fi-rr-filter-list"></i>
                     </button>

@@ -129,13 +129,13 @@ const ManagePersonnels = () => {
 
 
             {personnelMode === 'view' && <h2 className='text-sm md:text-xl mb-2 font-bold dark:text-white'>Manage Personnels</h2>}
-            <div className='flex flex-col w-full h-full bg-white rounded-lg border border-neutral-200'>
-                <div className='z-15 sticky top-0 flex items-center justify-between items-center bg-white/60 backdrop-blur-md p-2 rounded-t-lg border-b border-neutral-200'>
-                    <div className='text-sm md:text-base'>{personnelMode === 'create' ? 'Add Personnel' : 'Personnels List'}</div>
+            <div className='flex flex-col w-full h-full bg-white rounded-3xl border border-neutral-200'>
+                <div className='z-15 sticky top-0 flex items-center justify-between items-center bg-white/60 backdrop-blur-md p-2 rounded-t-3xl border-b border-neutral-200'>
+                    <div className='text-sm md:text-base ml-3'>{personnelMode === 'create' ? 'Add Personnel' : 'Personnels List'}</div>
                     {personnelMode === 'view' &&
                         <div className='flex h-full flex-col md:flex-row gap-2'>
                             <div className='justify-self-start md:justify-self-end'><TableFeatures repopulate={repopulate} setRepopulate={setRepopulate} columns={colList} setColumns={setColumns} content={personnelsList} setContent={setPersonnelsList} /></div>
-                            <button onClick={() => setPersonnelMode('create')} className='w-fit h-full self-end text-white bg-green-500 hover:bg-green-600  rounded-lg text-xs md:text-sm px-2 py-1'>Add Personnel</button>
+                            <button onClick={() => setPersonnelMode('create')} className='w-fit h-full self-end text-white bg-green-500 hover:bg-green-600  rounded-3xl text-xs md:text-sm px-3 py-2'>Add Personnel</button>
                         </div>
                     }
                 </div>

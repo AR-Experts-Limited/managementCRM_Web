@@ -464,9 +464,9 @@ const WorkingHours = () => {
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col w-full h-full bg-white rounded-lg border border-neutral-200 overflow-hidden">
+            <div className="flex-1 flex flex-col w-full h-full bg-white rounded-3xl border border-neutral-200 overflow-hidden">
                 <div className="z-15 sticky top-0 flex items-center justify-between bg-white backdrop-blur-md p-2 rounded-t-lg border-b border-neutral-200">
-                    <div className="text-sm md:text-base">Working Hours Logs</div>
+                    <div className="text-sm md:text-base md:ml-3">Working Hours Logs</div>
                     <TableFeatures
                         repopulate={repopulate}
                         setRepopulate={setRepopulate}
